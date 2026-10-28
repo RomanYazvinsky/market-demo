@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/angular';
-import userEvent from '@testing-library/user-event';
+import userEvent, { PointerEventsCheckLevel } from '@testing-library/user-event';
 import { pageTest as test } from '../../testing/producer-fixtures';
 import { DEFAULT_SETTINGS } from '../producer/protocol';
 import SettingsPage from './settings.page';
@@ -39,7 +39,8 @@ describe('SettingsPage', () => {
       await render(SettingsPage, { providers });
       await retype(label, value);
       expect(applyButton()).toBeDisabled();
-      await userEvent.click(applyButton());
+      // Material gives disabled buttons pointer-events: none, which userEvent refuses to click through.
+      await userEvent.setup({ pointerEventsCheck: PointerEventsCheckLevel.Never }).click(applyButton());
       expect(producer.apply).not.toHaveBeenCalled();
     },
   );
