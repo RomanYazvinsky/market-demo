@@ -154,3 +154,42 @@ describe('ProducerService (loader failure)', () => {
     expect(svc.error()).toBe('Failed to start producer: chunk 404');
   });
 });
+
+describe('ProducerService (recovery after a failed start)', () => {
+  // The symbol list fails once (e.g. a transient network error), then loads.
+  test.scoped({
+    symbolsLoader: async ({}, use) => {
+      let calls = 0;
+      await use(() => (calls++ === 0 ? Promise.reject(new Error('HTTP 503')) : Promise.resolve(SYMBOLS)));
+    },
+  });
+  test('U12 apply after a failed start retries the start and applies the new settings', async ({ svc, workers }) => {
+    await svc.start();
+    expect(svc.status()).toBe('error');
+    const next = { ...DEFAULT_SETTINGS, instrumentCount: 3 };
+    svc.apply(next);
+    await svc.start(); // the retry started by apply()
+    const live = workers.at(-1)!;
+    expect(live.sent).toEqual([{ type: 'apply', runId: 2, config: cfg(next) }]);
+    expect(svc.rows()).toEqual(rows(3));
+    expect(svc.status()).toBe('initializing');
+    expect(svc.error()).toBeNull();
+    workers.slice(0, -1).forEach((w) => expect(w.terminated).toBe(true));
+  });
+});
+
+describe('ProducerService (recovery after a worker crash)', () => {
+  test('U12 apply after a worker crash replaces the dead worker', async ({ svc, workers }) => {
+    await svc.start();
+    workers[0].crash('boom');
+    expect(svc.status()).toBe('error');
+    svc.apply(DEFAULT_SETTINGS);
+    await svc.start();
+    expect(workers).toHaveLength(2);
+    expect(workers[0].terminated).toBe(true);
+    expect(workers[1].sent).toEqual([{ type: 'apply', runId: 2, config: cfg(DEFAULT_SETTINGS) }]);
+    workers[1].emit({ type: 'status', runId: 2, status: 'running' });
+    expect(svc.status()).toBe('running');
+    expect(svc.error()).toBeNull();
+  });
+});

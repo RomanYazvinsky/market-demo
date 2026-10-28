@@ -79,8 +79,13 @@ export class ProducerService {
     if (config) this._rows.set(config.symbols.map(emptyRow));
     this._status.set('initializing');
     this._error.set(null);
-    // Not ready yet: start() sends the latest settings once the worker is up.
-    if (config && this.channel) this.channel.send({ type: 'apply', runId: this.runId, config });
+    if (config && this.channel) {
+      this.channel.send({ type: 'apply', runId: this.runId, config });
+    } else {
+      // No live worker: either still starting (start() sends the latest settings once it is up)
+      // or a previous start/worker failed, in which case start() retries.
+      void this.start();
+    }
   }
 
   pause(): void {
@@ -114,7 +119,12 @@ export class ProducerService {
       )
       .subscribe({
         next: (m) => this.onMessage(m),
-        error: (err: unknown) => this.fail((err instanceof Error && err.message) || 'Producer worker failed'),
+        error: (err: unknown) => {
+          // The crashed worker's stream is dead: drop it so the next Apply starts a new one.
+          channel.terminate();
+          this.channel = undefined;
+          this.fail((err instanceof Error && err.message) || 'Producer worker failed');
+        },
       });
     this.channel = channel;
 
@@ -133,8 +143,9 @@ export class ProducerService {
     }
   }
 
-  /** Errors end the skeleton too, so the message is visible. */
+  /** Errors end the skeleton too, so the message is visible. The next Apply retries start(). */
   private fail(message: string): void {
+    this.starting = undefined;
     this._status.set('error');
     this._error.set(message);
     this._started.set(true);
