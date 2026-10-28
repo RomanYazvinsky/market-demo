@@ -1,4 +1,4 @@
-package main
+package generator
 
 type Instrument int8
 type PriceCents int32
