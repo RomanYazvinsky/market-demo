@@ -4,7 +4,20 @@ This project was generated with [Analog](https://analogjs.org), the fullstack me
 
 ## Setup
 
-Run `npm install` to install the application dependencies.
+Run `pnpm install` to install the application dependencies.
+
+### Blocked dependency builds
+
+The following dependencies have their install/postinstall scripts explicitly disabled with `allowBuilds: false` in `pnpm-workspace.yaml`:
+
+- `@parcel/watcher`
+- `esbuild`
+- `lmdb`
+- `msgpackr-extract`
+
+These scripts build or configure platform-specific components. The packages are still installed, but pnpm does not run their build scripts. Use pnpm for installation so this policy is applied.
+
+If a dependency requires its build script, review the script, set that package's `allowBuilds` entry to `true`, and run `pnpm rebuild <package>`. For example, after allowing `esbuild`, run `pnpm rebuild esbuild`.
 
 ## Development
 
