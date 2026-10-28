@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 
 export interface RxWorker<In, Out> {
   /** Hot, shared stream of worker messages. Errors on worker `error`/`messageerror`; completes on terminate. */
@@ -9,6 +9,30 @@ export interface RxWorker<In, Out> {
 }
 
 export function rxWorker<In, Out>(worker: Worker): RxWorker<In, Out> {
-  void worker;
-  throw new Error('not implemented');
+  const subject = new Subject<Out>();
+  let closed = false;
+
+  const onMessage = (e: MessageEvent<Out>) => subject.next(e.data);
+  const onError = (e: ErrorEvent) => subject.error(new Error(e.message || 'Worker error'));
+  const onMessageError = () => subject.error(new Error('Worker message could not be deserialized'));
+
+  worker.addEventListener('message', onMessage);
+  worker.addEventListener('error', onError);
+  worker.addEventListener('messageerror', onMessageError);
+
+  return {
+    messages$: subject.asObservable(),
+    send(message: In) {
+      if (!closed) worker.postMessage(message);
+    },
+    terminate() {
+      if (closed) return;
+      closed = true;
+      worker.removeEventListener('message', onMessage);
+      worker.removeEventListener('error', onError);
+      worker.removeEventListener('messageerror', onMessageError);
+      worker.terminate();
+      subject.complete();
+    },
+  };
 }
