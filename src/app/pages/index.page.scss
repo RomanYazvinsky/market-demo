@@ -2,6 +2,42 @@
   display: block;
 }
 
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font: var(--mat-sys-label-large);
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+
+  &[data-status='error'] {
+    background: var(--mat-sys-error-container);
+    color: var(--mat-sys-on-error-container);
+  }
+}
+
+.status-word {
+  text-transform: capitalize;
+}
+
+.status-error {
+  font: var(--mat-sys-body-medium);
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--mat-sys-corner-medium, 12px);
+  border: 1px solid var(--mat-sys-outline-variant);
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .skeleton-pill {
   width: 8rem;
   height: 1.75rem;
