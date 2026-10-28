@@ -55,3 +55,6 @@ Thumbs.db
 
 # Superpowers execution workspace
 /.superpowers/
+
+# Agent worktrees
+/.claude/worktrees/
