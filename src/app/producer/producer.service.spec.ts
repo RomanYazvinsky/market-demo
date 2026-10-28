@@ -136,7 +136,8 @@ describe('ProducerService (started)', () => {
 });
 
 describe('ProducerService (symbol list failure)', () => {
-  test.scoped({ symbolsLoader: () => Promise.reject(new Error('HTTP 404')) });
+  // A function value would be run as a fixture factory, so the loader is provided via `use`.
+  test.scoped({ symbolsLoader: async ({}, use) => use(() => Promise.reject(new Error('HTTP 404'))) });
   test('U12 reports a missing instrument list and sends nothing', async ({ svc, workers }) => {
     await svc.start();
     expect(svc.status()).toBe('error');
@@ -146,7 +147,7 @@ describe('ProducerService (symbol list failure)', () => {
 });
 
 describe('ProducerService (loader failure)', () => {
-  test.scoped({ loader: () => Promise.reject(new Error('chunk 404')) });
+  test.scoped({ loader: async ({}, use) => use(() => Promise.reject(new Error('chunk 404'))) });
   test('U12 reports a loader failure as an error status', async ({ svc }) => {
     await svc.start();
     expect(svc.status()).toBe('error');
