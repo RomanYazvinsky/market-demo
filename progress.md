@@ -30,7 +30,7 @@
 # Implementation checklist
 Plan: docs/superpowers/plans/2026-10-28-realtime-dashboard/
 - [x] 01 Contracts: tooling
-- [ ] 01 Contracts: boundary types
+- [x] 01 Contracts: boundary types
 - [ ] 02 Wasm
 - [ ] 03 Worker
 - [ ] 04 UI
