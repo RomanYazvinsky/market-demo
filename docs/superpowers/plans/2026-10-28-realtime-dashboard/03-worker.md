@@ -30,7 +30,7 @@ Every test name starts with the ID(s) it proves; `grep -rn "<ID>" src` lists the
 | K18 | Initialisation errors are reported with readable text, and no generation starts | T §3 | `K18 reports wasm load failure`, `K18 reports go init error and does not generate` |
 | K19 | Results of a previous run never leak into a new run (stale pause/resume ignored; an older apply can't start after a newer one) | T §2 | `K19 ignores pause and resume for a stale runId`, `K19 an older apply still awaiting wasm does not start after a newer one` |
 | K20 | Producer resources are cleaned up when replaced or disposed | T §3 | `K20 dispose stops all timers` |
-| K21 | The loader turns a failed fetch into `Failed to load <url>: HTTP <status>` | T §3 | `wasm-loader.spec.ts` › `K21 reports the HTTP status of a failed fetch` |
+| K21 | The loader reports every load failure readably: HTTP error (`Failed to load <url>: HTTP <status>`), invalid binary (`Failed to start <url>: …`), module that never registers the API | T §3 | `wasm-loader.spec.ts` › `K21 reports the HTTP status of a failed fetch`, `K21 reports a binary that is not valid wasm as a start failure`, `K21 reports a module that never registers the producer API` |
 | K22 | The loader refuses big-endian platforms (memory model in `wasm-api.ts`) | C | `K22 rejects a big-endian platform before fetching` |
 | K23 | One Int32Array of `updatesPerBatch × 7` per run is bound in `init` and reused for every batch | C | `K12 K23 apply posts…` (asserts the bound length 70). Reuse is enforced by the contract: `nextBatch()` takes no buffer. |
 | K24 | The worker entry wires controller, loader and environment | S | — *Manual:* covered end to end in 05 Task 5.2 (browser-only glue). |
