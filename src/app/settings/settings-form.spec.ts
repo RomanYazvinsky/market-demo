@@ -1,11 +1,13 @@
+import { TestBed } from '@angular/core/testing';
 import { test as base } from 'vitest';
 import { DEFAULT_SETTINGS } from '../producer/protocol';
 import { createSettingsForm, toSettings, type SettingsModel } from './settings-form';
 
 type Field = keyof SettingsModel;
 
+// Signal forms' form() needs an injector, as it would have inside a component.
 const test = base.extend<{ settings: ReturnType<typeof createSettingsForm> }>({
-  settings: async ({}, use) => use(createSettingsForm(DEFAULT_SETTINGS)),
+  settings: async ({}, use) => use(TestBed.runInInjectionContext(() => createSettingsForm(DEFAULT_SETTINGS))),
 });
 
 const set = ({ model }: ReturnType<typeof createSettingsForm>, field: Field, value: unknown) =>
