@@ -1,5 +1,4 @@
+/** Grouped digits for a bigint (Intl accepts bigint; DecimalPipe does not). */
 export function formatBigInt(value: bigint, locale: string): string {
-  void value;
-  void locale;
-  throw new Error('not implemented');
+  return new Intl.NumberFormat(locale).format(value);
 }
