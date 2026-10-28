@@ -26,3 +26,14 @@
 # contracts
 1. I will use the provided data scheme for market update
 2. Required bandwidth is 560 kb/s which allows us to use json everywhere, but it still not really nice. Let's use int32 arrays
+
+# Implementation checklist
+Plan: docs/superpowers/plans/2026-10-28-realtime-dashboard/
+- [x] 01 Contracts: tooling
+- [ ] 01 Contracts: boundary types
+- [ ] 02 Wasm
+- [ ] 03 Worker
+- [ ] 04 UI
+- [ ] 05 Integration
+- [ ] 05 Docs
+- [ ] 05 Deploy

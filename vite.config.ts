@@ -12,14 +12,26 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     mainFields: ['module'],
   },
+  worker: {
+    // The producer worker uses ES imports and is loaded via `?worker`.
+    format: 'es',
+  },
   plugins: [
     analog({
-      ssr: false,
+      ssr: true,
       static: true,
       prerender: {
-        routes: [],
+        routes: async () => ['/', '/settings'],
       },
+      inlineStylesExtension: 'scss',
     }),
-    tailwindcss()
+    tailwindcss(),
   ],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['src/test-setup.ts'],
+    include: ['src/**/*.spec.ts'],
+    reporters: ['default'],
+  },
 }));

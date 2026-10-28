@@ -9,4 +9,4 @@ func main() {
 	select {}
 }
 
-func ApplySettings()
+func ApplySettings() {} // placeholder until module 02 replaces main.go

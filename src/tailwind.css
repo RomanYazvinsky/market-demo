@@ -1,0 +1,3 @@
+/* Tailwind 4 entry, kept as plain CSS (Tailwind can't be processed through Sass).
+   Used for layout utilities only; theme and component styles live in SCSS. */
+@import 'tailwindcss';
