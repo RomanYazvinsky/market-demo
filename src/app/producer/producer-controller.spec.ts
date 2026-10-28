@@ -129,7 +129,9 @@ describe('ProducerController', () => {
 });
 
 describe('ProducerController (wasm load failure)', () => {
-  test.scoped({ wasmSource: () => Promise.reject(new Error('Failed to load /producer.wasm: HTTP 404')) });
+  test.scoped({
+    wasmSource: async ({}, use) => use(() => Promise.reject(new Error('Failed to load /producer.wasm: HTTP 404'))),
+  });
 
   test('K18 reports wasm load failure', async ({ ctrl, out }) => {
     await apply(ctrl, 1);
@@ -139,7 +141,7 @@ describe('ProducerController (wasm load failure)', () => {
 
 describe('ProducerController (slow wasm)', () => {
   let release!: () => void;
-  test.scoped({ wasmSource: (wasm) => new Promise((r) => (release = () => r(wasm))) });
+  test.scoped({ wasmSource: async ({}, use) => use((wasm) => new Promise((r) => (release = () => r(wasm)))) });
 
   test('K19 an older apply still awaiting wasm does not start after a newer one', async ({ ctrl, clock, wasm, out }) => {
     const first = apply(ctrl, 1);
