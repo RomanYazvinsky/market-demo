@@ -1,6 +1,6 @@
 # Exhausted best level: imbalance shows ±1.00
 
-Status: open, waiting for a decision.
+Status: parked. Current behaviour kept; the market model is being simplified instead (see *Prototype results*).
 
 ## Symptom
 
@@ -79,16 +79,34 @@ A second effect of the same cause: `refresh` moves *away* from the old price ins
 | A | Keep, document | 17% | yes | no |
 | B | Lower `ImproveChancePct` | rarer (7.5% at 10) | yes | partly |
 | C | Emit the **pre-trade quote** (prevailing quote) | never | yes | no |
-| D | Remember the level behind the best (one extra level per side) | rarer | yes | yes |
+| D | Remember the level behind the best (one extra level per side) | still emitted (the 0 shows in the same update that empties the level) | yes | yes |
 | E | After the fill, promote the next level and emit it | never | no: price is the level hit, not the emitted ask | yes |
 
 - **C** is small: in `NextBatch`, take the bid/ask snapshot before `takerTrade`. W08/W10 and the quantity-after-fill tests change. The book is still corrected on the instrument's next update.
-- **D** fixes the cause:
+- **D** targets the cause:
   - When a maker improves, the old best moves into a "behind" slot.
   - `refresh` restores the behind level first, and only creates a new level one gap out when there's none.
   - This changes `book.go` and the W-requirements for refresh and maker.
-- **C + D** together: no fake ±1.00 values, quotes that match the prevailing quote in real data, and prices that come back to where liquidity actually rests.
+- **C + D** together: no fake ±1.00 values, quotes that match the prevailing quote in real data, and prices that come back to where liquidity actually rests. The prototype below shows the cost: prices stop moving.
 
-## Recommendation
+## Prototype results
 
-**C** is enough for the dashboard metrics. Add **D** if the price path should also look realistic.
+D (N remembered levels per side, deepest dropped when full) and C (pre-trade quote) were built in a throwaway copy of `wasm/generator` (not committed). 50 instruments, 200,000 updates, seed 42:
+
+| Levels per side | 0-share level, post-trade quote | 0-share level, pre-trade quote (C) | Spread at cap | Price range per instrument |
+|---|---|---|---|---|
+| 1 (today) | 17.2% | 0% | 35.1% | 1.36% |
+| 2 | 19.8% | 0% | 14.7% | 0.62% |
+| 4 | 17.3% | 0% | 2.1% | 0.26% |
+| 8 | 7.9% | 0% | 0.0% | 0.09% |
+| 16 | 6.6% | 0% | 0.0% | — |
+
+Price range is (max − min) / min of the mid price, over about 4,000 updates per instrument. All variants passed W11, and none allocated per batch.
+
+- **D alone doesn't remove ±1.00.** The 0 is emitted in the update that empties the level; the remembered level is used only at that instrument's next update. The drop at 8+ levels is a side effect: with 1–2¢ spreads there's no room to improve by 1¢, so fewer thin levels are created.
+- **C removes it completely.** The current `TestW24_QuotesMoveAwayOnlyAfterExhaustion` would need rewriting, because it detects exhaustion from the emitted 0.
+- **D freezes prices.** Makers only add shares and takers are the same size as makers, so the remembered levels absorb the flow and the price snaps back. At 8 levels a $100 stock moves about 9¢ per run. D would need a price-moving force on top, either cancellations or larger takers.
+
+## Decision
+
+Neither C nor D is adopted. D needs another mechanism to keep prices moving, so the model is simplified instead. A simpler model should avoid empty quoted levels by construction.
