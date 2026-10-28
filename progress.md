@@ -31,9 +31,9 @@
 Plan: docs/superpowers/plans/2026-10-28-realtime-dashboard/
 - [x] 01 Contracts: tooling
 - [x] 01 Contracts: boundary types
-- [ ] 02 Wasm
-- [ ] 03 Worker
-- [ ] 04 UI
-- [ ] 05 Integration
+- [x] 02 Wasm
+- [x] 03 Worker
+- [x] 04 UI
+- [x] 05 Integration
 - [ ] 05 Docs
 - [ ] 05 Deploy
