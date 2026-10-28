@@ -1,37 +1,33 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import type { RouteMeta } from '@analogjs/router';
+import { ProducerService } from '../producer/producer.service';
+
+export const routeMeta: RouteMeta = { title: 'Dashboard' };
 
 @Component({
-  selector: 'app-home',
+  selector: 'app-dashboard-page',
+  styleUrl: './index.page.scss',
   template: `
-    <h2>Analog</h2>
+    <section class="flex flex-col gap-4">
+      <header class="flex flex-wrap items-center justify-between gap-4">
+        <h1>Market dashboard</h1>
+      </header>
 
-    <h3>The fullstack meta-framework for Angular!</h3>
-
-    <p class="read-the-docs">
-      <a href="https://analogjs.org" target="_blank">Docs</a> |
-      <a href="https://github.com/analogjs/analog" target="_blank">GitHub</a> |
-      <a href="https://github.com/sponsors/brandonroberts" target="_blank">
-        Sponsor
-      </a>
-    </p>
-  `,
-  styles: `
-    :host {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .read-the-docs > * {
-      color: #fff;
-    }
-
-    @media (prefers-color-scheme: light) {
-      .read-the-docs > * {
-        color: #213547;
-      }
-    }
+      <div class="flex flex-col gap-4" aria-busy="true" aria-label="Loading market data">
+        <div class="flex items-center justify-between gap-4">
+          <div class="skeleton skeleton-pill"></div>
+          <div class="skeleton skeleton-button"></div>
+        </div>
+        <div class="flex flex-col gap-2">
+          @for (row of skeletonRows; track row) {
+            <div class="skeleton skeleton-row"></div>
+          }
+        </div>
+      </div>
+    </section>
   `,
 })
-export default class Home {}
+export default class DashboardPage {
+  protected readonly producer = inject(ProducerService);
+  protected readonly skeletonRows = [1, 2, 3, 4, 5];
+}
