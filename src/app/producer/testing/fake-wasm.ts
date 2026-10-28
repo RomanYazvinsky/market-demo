@@ -7,7 +7,7 @@ export class FakeWasm implements WasmProducer {
   initResult: string | null = null;
   private n = 0;
   private k = 0;
-  private dst = new Int32Array(0);
+  private dst: Int32Array = new Int32Array(0);
 
   init(seed: number, n: number, k: number, dst: Int32Array) {
     this.inits.push([seed, n, k, dst.length]);
