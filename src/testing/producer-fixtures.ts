@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { type Provider, signal } from '@angular/core';
 import { test as base } from 'vitest';
 import { ProducerService } from '../app/producer/producer.service';
 import { DEFAULT_SETTINGS, type MetricsRow, type ProducerStatus } from '../app/producer/protocol';
@@ -19,7 +19,7 @@ export function createProducerStub() {
 export type ProducerStub = ReturnType<typeof createProducerStub>;
 
 /** `producer`: a stub ProducerService; `providers`: ready to pass to ATL `render`. */
-export const pageTest = base.extend<{ producer: ProducerStub; providers: unknown[] }>({
+export const pageTest = base.extend<{ producer: ProducerStub; providers: Provider[] }>({
   producer: async ({}, use) => use(createProducerStub()),
   providers: async ({ producer }, use) => use([{ provide: ProducerService, useValue: producer }]),
 });
