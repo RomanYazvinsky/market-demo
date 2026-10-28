@@ -35,5 +35,20 @@ Plan: docs/superpowers/plans/2026-10-28-realtime-dashboard/
 - [x] 03 Worker
 - [x] 04 UI
 - [x] 05 Integration
-- [ ] 05 Docs
+- [x] 05 Docs
 - [ ] 05 Deploy
+
+# Decisions
+- **Wasm:** Go with the standard toolchain (`GOOS=js GOARCH=wasm`). Randomness and price logic run only in Go. The PRNG is seeded, so tests are deterministic.
+- **Market model:** order-driven, with a one-level book per instrument. Maker orders add liquidity (join, or improve the price by 1¢) and taker orders take it; each taker fill is the trade. Instruments are picked at random, so an instrument can miss a batch. All numbers live in Go `ModelConfig` (Go-side only).
+- **Transport:** `Int32Array`, 7 ints per update. There is one buffer per run, bound in `init`, and one bulk copy per batch. The Uint8Array byte view lives inside Go and is documented in `wasm-api.ts` and `main.go`.
+- **Metrics:** computed in the worker. Volume and Σ(price×qty) are BigInt. The UI only formats.
+- **Refresh:** one snapshot per `environment.uiRefreshMs` (1 s). It is pre-configured, not a user setting.
+- **Runs:** every message carries a `runId`, and the UI drops other runs. Apply resets the rows immediately.
+- **Instruments:** S&P 500 tickers from `public/resources/sp500.json`, sliced on the UI side and sent in `ProducerConfig`.
+- **UI:**
+  - Angular Material, signal forms, and the Angular `currency`/`number` pipes plus our own `cents`/`bigint` pipes.
+  - Tailwind for layout and SCSS for theme and components.
+  - Pages are prerendered (SSR/SSG) with skeletons. The producer starts after the first render, and the worker is a lazy `?worker` chunk wrapped by `rxWorker`.
+  - Only `environment.ts` reads `import.meta`.
+- **Process:** contract-first modules (wasm, worker, ui), built test-first in parallel worktrees and merged. Every requirement has an ID (W/K/U/C) that appears in its test names.
