@@ -49,13 +49,41 @@ export function emptyRow(symbol: string): MetricsRow {
   return { symbol, lastPriceCents: null, spreadCents: null, volume: 0n, vwapCents: null, imbalance: null };
 }
 
+/** How many of an instrument's latest updates the worker keeps for the instrument page. */
+export const EVENT_LOG_SIZE = 100;
+
+/** One market update of an instrument, numbered across the run and stamped with its batch time. */
+export interface TickerEvent {
+  sequence: number;
+  timeMs: number;
+  priceCents: number;
+  quantity: number;
+  bidCents: number;
+  askCents: number;
+  bidQty: number;
+  askQty: number;
+}
+
+/** The watched symbol's latest events, oldest first. */
+export interface WatchedEvents {
+  symbol: string;
+  events: TickerEvent[];
+}
+
+/** A trade at the ask is a buy, at the bid a sell. */
+export function tradeSide(event: TickerEvent): 'buy' | 'sell' {
+  return event.priceCents === event.askCents ? 'buy' : 'sell';
+}
+
 /** UI -> worker. `runId` increases with every apply; pause/resume carry the current one. */
 export type ToWorker =
   | { type: 'apply'; runId: number; config: ProducerConfig }
   | { type: 'pause'; runId: number }
-  | { type: 'resume'; runId: number };
+  | { type: 'resume'; runId: number }
+  /** The symbol an instrument page shows, or null. UI state, so it has no runId and survives apply. */
+  | { type: 'watch'; symbol: string | null };
 
 /** Worker -> UI. Every message carries the runId it belongs to; the UI drops other runs. */
 export type FromWorker =
   | { type: 'status'; runId: number; status: ProducerStatus; error?: string }
-  | { type: 'snapshot'; runId: number; rows: MetricsRow[] };
+  | { type: 'snapshot'; runId: number; rows: MetricsRow[]; watched: WatchedEvents | null };

@@ -104,7 +104,7 @@ export class ProducerController {
   }
 
   private emit(): void {
-    this.deps.post({ type: 'snapshot', runId: this.runId, rows: this.store.snapshot() });
+    this.deps.post({ type: 'snapshot', runId: this.runId, rows: this.store.snapshot(), watched: null });
   }
 
   private status(status: 'initializing' | 'running' | 'paused'): void {
