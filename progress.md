@@ -12,7 +12,7 @@
 - Table receives updates per period
 - Table can be sorted by any column (header click) and searched by symbol
 ## instrument page
-- `/instrument/:symbol`, linked from the table: Chart.js price graph (trade, bid, ask) and a log of the ticker's last 100 market updates
+- `/instrument/:symbol`, linked from the table: Chart.js price graph (trade, bid, ask; Live / 60 s / 5 min windows, time windows at 1 point per second) and a log of the ticker's last 100 market updates
 - The worker keeps the last 100 updates per instrument (bounded) and sends only the watched symbol's
 - Format cells (currency, number)
 ## Table updates (trades)

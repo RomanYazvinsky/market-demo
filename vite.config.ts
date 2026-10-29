@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => ({
     include: [
       '@angular/forms/signals',
       '@angular/material/button',
+      '@angular/material/button-toggle',
       '@angular/material/form-field',
       '@angular/material/input',
       '@angular/material/sort',

@@ -1,4 +1,4 @@
-import { Chart, Filler, Legend, LineController, LineElement, LinearScale, PointElement, Tooltip, type ChartDataset } from 'chart.js';
+import { Chart, Filler, Legend, LineController, LineElement, LinearScale, PointElement, Ticks, Tooltip, type ChartDataset, type LinearScaleOptions } from 'chart.js';
 import type { ChartCanvases, PriceChartHandle, PriceSeries } from './price-chart';
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, Tooltip, Legend, Filler);
@@ -14,6 +14,7 @@ function themeColor(canvas: HTMLCanvasElement, token: string): string {
 }
 
 const dollars = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const clock = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 type LineChart = Chart<'line', Point[]>;
 
@@ -71,14 +72,23 @@ export function createPriceCharts(canvases: ChartCanvases): PriceChartHandle {
   );
   return {
     update(series: PriceSeries) {
-      const points = (values: number[]) => values.map((value, index) => ({ x: series.sequences[index], y: value }));
+      const points = (values: number[]) => values.map((value, index) => ({ x: series.xs[index], y: value }));
       priceChart.data.datasets[0].data = points(series.prices);
       priceChart.data.datasets[1].data = points(series.bids);
       priceChart.data.datasets[2].data = points(series.asks);
       spreadChart.data.datasets[0].data = points(series.spreads);
+      const time = series.axis === 'time';
       for (const chart of [priceChart, spreadChart]) {
-        chart.options.scales!['x']!.min = series.sequences.at(0);
-        chart.options.scales!['x']!.max = series.sequences.at(-1);
+        chart.options.scales!['x']!.min = series.xMin;
+        chart.options.scales!['x']!.max = series.xMax;
+        const x = chart.options.scales!['x'] as LinearScaleOptions;
+        x.title.text = time ? 'Time' : 'Event #';
+        x.ticks.callback = time
+          ? (value) => clock.format(Number(value))
+          : function (value, index, ticks) {
+              return Ticks.formatters.numeric.call(this, Number(value), index, ticks);
+            };
+        x.ticks.precision = 0;
         chart.update('none');
       }
     },

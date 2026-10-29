@@ -1,22 +1,26 @@
 import type { EnvironmentProviders, Provider } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, type ParamMap } from '@angular/router';
-import { render, screen } from '@testing-library/angular';
+import { render, screen, within } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { BehaviorSubject } from 'rxjs';
 import { pageTest as test } from '../../../testing/producer-fixtures';
-import { PRICE_CHART_FACTORY } from '../../instrument/price-chart';
+import { PRICE_CHART_FACTORY, type PriceSeries } from '../../instrument/price-chart';
 import { emptyRow, type TickerEvent } from '../../producer/protocol';
 import InstrumentPage from './[symbol].page';
 
 const EVENT: TickerEvent = { sequence: 7, timeMs: 0, priceCents: 10200, quantity: 30, bidCents: 10196, askCents: 10200, bidQty: 600, askQty: 400 };
 
-const renderPage = async (providers: Array<Provider | EnvironmentProviders>, symbol = 'AAPL') => {
+const renderPage = async (
+  providers: Array<Provider | EnvironmentProviders>,
+  symbol = 'AAPL',
+  update: (series: PriceSeries) => void = () => {},
+) => {
   const params = new BehaviorSubject<ParamMap>(convertToParamMap({ symbol }));
   const view = await render(InstrumentPage, {
     providers: [
       ...providers,
       { provide: ActivatedRoute, useValue: { paramMap: params } },
-      { provide: PRICE_CHART_FACTORY, useValue: async () => ({ update() {}, destroy() {} }) },
+      { provide: PRICE_CHART_FACTORY, useValue: async () => ({ update, destroy() {} }) },
     ],
   });
   return { ...view, params };
@@ -68,6 +72,21 @@ describe('InstrumentPage', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('AAPL');
     expect(screen.getByLabelText('Loading instrument data')).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
+  test('U41 the window toggle switches the charts between Live, 60 s and 5 min', async ({ producer, providers }) => {
+    producer.rows.set([emptyRow('AAPL')]);
+    producer.watched.set({ symbol: 'AAPL', events: [EVENT], seconds: [{ timeMs: 5_000, priceCents: 10200, bidCents: 10196, askCents: 10200 }] });
+    const updates: PriceSeries[] = [];
+    const { fixture } = await renderPage(providers, 'AAPL', (series) => updates.push(series));
+    await fixture.whenStable();
+    const group = screen.getByRole('radiogroup', { name: 'Chart window' });
+    expect(within(group).getAllByRole('radio').map((option) => option.textContent!.trim())).toEqual(['Live', '60 s', '5 min']);
+    expect(screen.getByRole('radio', { name: 'Live' })).toBeChecked();
+    expect(updates.at(-1)!.axis).toBe('event');
+    await userEvent.click(screen.getByRole('radio', { name: '5 min' }));
+    await fixture.whenStable();
+    expect(updates.at(-1)).toMatchObject({ axis: 'time', xs: [5_000], xMin: -295_000 });
   });
 
   test('U38 shows the current spread', async ({ producer, providers }) => {
