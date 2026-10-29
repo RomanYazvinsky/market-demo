@@ -1,6 +1,6 @@
 # Exhausted best level: imbalance shows ±1.00
 
-Status: parked. Current behaviour kept; the market model is being simplified instead (see *Prototype results*).
+Status: accepted by design. ±1.00 imbalance is valid output: TASK.md allows book quantities of 0. The follow-up is multi-level taker fills (`plans/2026-10-28-realtime-dashboard/07-multi-level-fills.md`).
 
 ## Symptom
 
@@ -109,4 +109,7 @@ Price range is (max − min) / min of the mid price, over about 4,000 updates pe
 
 ## Decision
 
-Neither C nor D is adopted. D needs another mechanism to keep prices moving, so the model is simplified instead. A simpler model should avoid empty quoted levels by construction.
+- **±1.00 is accepted.** An empty best level after a trade is valid under TASK.md ("book quantities nonnegative"), so no quote is hidden or faked.
+- **C and D are not adopted.** D needs another mechanism to keep prices moving.
+- **The simplified never-empty model (plan 06) is rejected.** It was prototyped (0% empty levels, 2.4% price range), but its compromises were not acceptable: levels never refill, makers are removed, and the order remainder is forced through.
+- **Chosen: multi-level taker fills (plan 07).** The maker/taker model stays. A taker's remaining budget continues to the next level instead of being cancelled, also across batch boundaries. The continuation is lazy: the generator keeps only the active order (instrument, side, money left).

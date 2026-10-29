@@ -29,6 +29,8 @@
 | 03 Worker | `03-worker.md` | `src/app/producer/{metrics,producer-controller,wasm-loader,producer.worker}.ts` + specs, `src/app/producer/testing/**` | Worker logic green against a fake `WasmProducer`. |
 | 04 UI | `04-ui.md` | `src/app/producer/{worker-channel,producer.service}.ts` + specs, `src/app/{app.ts,app.config.ts,app.scss}`, `src/app/shared/**`, `src/app/settings/**`, `src/app/pages/**`, `src/styles.scss`, `src/testing/**` | Service, form, pages green against a fake `Worker` / stub service. |
 | 05 Integration | `05-integration.md` | anything; `README.md`, `progress.md`, `.github/**` | Merged, works in browser, documented, auto-deployed. |
+| 06 Simplified model (rejected) | `06-simplified-model.md` | — | Never-empty model; rejected in favour of 07, not implemented. |
+| 07 Multi-level fills (chosen, not started) | `07-multi-level-fills.md` | `wasm/generator/**`, docs | Budget continuations across levels and batches (lazy), post-fill snapshots; retains maker/taker. |
 
 ### Rules
 

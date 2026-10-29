@@ -1,5 +1,7 @@
 # Simplified Market Model Implementation Plan
 
+**Status: rejected, not implemented.** Superseded by `07-multi-level-fills.md`. The author did not accept its compromises: levels never refill between price moves, makers are removed, and the never-empty rule exists only to avoid ±1 imbalance, which TASK.md allows (book quantities may be 0). Kept for history.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the maker/taker order-book model with a semi-random taker-only model in which a quoted level is never empty.
