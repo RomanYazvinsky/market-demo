@@ -1,4 +1,4 @@
-<app-status-badge [status]="producer.status()" [error]="producer.error()" />
+<app-status-badge class="flex" [status]="producer.status()" [error]="producer.error()" />
 <span class="run-time" aria-label="Run time" title="Run time">{{ runTime() }}</span>
 <app-producer-toggle />
 <a matIconButton routerLink="/settings" aria-label="Settings" title="Settings">
