@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { pageTest as test } from '../../testing/producer-fixtures';
 import { emptyRow } from '../producer/protocol';
+import { DisplaySettings } from '../settings/display-settings';
 import DashboardPage from './index.page';
 
 const ALFA = { symbol: 'ALFA', lastPriceCents: 10200, spreadCents: 4, volume: 40n, vwapCents: 10150, imbalance: 0.2 };
@@ -96,9 +97,18 @@ describe('DashboardPage', () => {
     expect(symbols()).toEqual(['Zulu Corp (ALFA)']);
   });
 
-  test('U36 the symbol cell links to its instrument page', async ({ producer, providers }) => {
+  test('U36 U48 with charts on, the symbol cell links to its instrument page', async ({ producer, providers }) => {
+    producer.rows.set([ALFA]);
+    const { fixture } = await render(DashboardPage, { providers });
+    fixture.debugElement.injector.get(DisplaySettings).showCharts.set(true);
+    await fixture.whenStable();
+    expect(screen.getByRole('link', { name: 'ALFA' })).toHaveAttribute('href', '/instrument/ALFA');
+  });
+
+  test('U48 with charts off, symbols are plain text', async ({ producer, providers }) => {
     producer.rows.set([ALFA]);
     await render(DashboardPage, { providers });
-    expect(screen.getByRole('link', { name: 'ALFA' })).toHaveAttribute('href', '/instrument/ALFA');
+    expect(screen.queryByRole('link', { name: 'ALFA' })).not.toBeInTheDocument();
+    expect(symbols()).toEqual(['ALFA']);
   });
 });

@@ -9,10 +9,11 @@ import { EventTable } from '../../instrument/event-table/event-table';
 import { PriceChart, type ChartWindow } from '../../instrument/price-chart/price-chart';
 import { EVENT_LOG_SIZE } from '../../producer/protocol';
 import { ProducerService } from '../../producer/producer.service';
+import { chartsEnabledGuard } from '../../settings/display-settings';
 import { CentsPipe } from '../../shared/cents.pipe';
 import { instrumentLabel } from '../../shared/instrument-label';
 
-export const routeMeta: RouteMeta = { title: 'Instrument' };
+export const routeMeta: RouteMeta = { title: 'Instrument', canActivate: [chartsEnabledGuard] };
 
 @Component({
   selector: 'app-instrument-page',

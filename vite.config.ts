@@ -6,7 +6,8 @@ import tailwindcss from '@tailwindcss/vite';
 import { readFileSync } from 'node:fs';
 import { SETTINGS_LIMITS } from './src/app/producer/protocol.ts';
 
-// Every instrument of the largest possible run gets a prerendered page, so deep links work on static hosting.
+// Every instrument of the largest possible run gets a prerendered page, so a deep link on static hosting loads the
+// app (not a 404); "Show charts" is off on a fresh load, so the route guard then sends it to the dashboard.
 const instrumentRoutes = (JSON.parse(readFileSync('public/resources/sp500.json', 'utf8')) as Array<{ symbol: string }>)
   .slice(0, SETTINGS_LIMITS.instrumentCount.max)
   .map((instrument) => `/instrument/${instrument.symbol}`);
@@ -27,9 +28,11 @@ export default defineConfig(({ mode }) => ({
       '@angular/material/button-toggle',
       '@angular/material/form-field',
       '@angular/material/input',
+      '@angular/material/slide-toggle',
       '@angular/material/sort',
       '@angular/material/table',
       '@angular/material/toolbar',
+      '@angular/material/tooltip',
       'chart.js',
     ],
   },

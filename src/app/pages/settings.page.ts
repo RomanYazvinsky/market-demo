@@ -4,17 +4,20 @@ import { FormField, submit } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import type { RouteMeta } from '@analogjs/router';
 import { ProducerService } from '../producer/producer.service';
 import { SETTINGS_LIMITS } from '../producer/protocol';
+import { DisplaySettings } from '../settings/display-settings';
 import { createSettingsForm, toSettings } from '../settings/settings-form';
 
 export const routeMeta: RouteMeta = { title: 'Settings' };
 
 @Component({
   selector: 'app-settings-page',
-  imports: [FormField, MatFormFieldModule, MatInputModule, MatButtonModule],
+  imports: [FormField, MatFormFieldModule, MatInputModule, MatButtonModule, MatSlideToggleModule, MatTooltipModule],
   host: { class: 'block' },
   templateUrl: './settings.page.html',
 })
@@ -22,6 +25,7 @@ export default class SettingsPage {
   private readonly producer = inject(ProducerService);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
+  protected readonly display = inject(DisplaySettings);
   protected readonly limits = SETTINGS_LIMITS;
   // A local copy: editing never touches the producer until Apply.
   private readonly settingsForm = createSettingsForm(this.producer.settings());

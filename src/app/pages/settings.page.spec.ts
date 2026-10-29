@@ -3,6 +3,7 @@ import userEvent, { PointerEventsCheckLevel } from '@testing-library/user-event'
 import { Router } from '@angular/router';
 import { pageTest as test } from '../../testing/producer-fixtures';
 import { DEFAULT_SETTINGS } from '../producer/protocol';
+import { DisplaySettings } from '../settings/display-settings';
 import SettingsPage from './settings.page';
 
 const field = (label: string) => screen.getByLabelText(label) as HTMLInputElement;
@@ -70,6 +71,16 @@ describe('SettingsPage', () => {
     const navigate = vi.spyOn(router, 'navigateByUrl');
     await userEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect(navigate).toHaveBeenCalledWith('/');
+  });
+
+  test('U48 "Show charts" is off by default, explained by a tooltip, and applies at once', async ({ producer, providers }) => {
+    const { fixture } = await render(SettingsPage, { providers });
+    const toggle = screen.getByRole('switch', { name: 'Show charts' });
+    expect(toggle).not.toBeChecked();
+    expect(screen.getByRole('button', { name: 'About Show charts' })).toHaveAccessibleDescription('Allows to open a chart for each instrument');
+    await userEvent.click(toggle);
+    expect(fixture.debugElement.injector.get(DisplaySettings).showCharts()).toBe(true);
+    expect(producer.apply).not.toHaveBeenCalled();
   });
 
   test('U24 shows a readable error after the field is touched', async ({ providers }) => {

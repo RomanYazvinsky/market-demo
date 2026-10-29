@@ -4,7 +4,7 @@
   </header>
 
   @if (producer.ready()) {
-    <app-market-table [rows]="producer.rows()" [names]="producer.names()" />
+    <app-market-table [rows]="producer.rows()" [names]="producer.names()" [linkSymbols]="display.showCharts()" />
   } @else {
     <div class="flex flex-col gap-4" aria-busy="true" aria-label="Loading market data">
       <div class="flex flex-col gap-2">

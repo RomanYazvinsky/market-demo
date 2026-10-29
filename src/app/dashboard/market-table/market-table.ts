@@ -31,6 +31,8 @@ type Column = keyof typeof SORT_KEYS;
 export class MarketTable {
   readonly rows = input.required<MetricsRow[]>();
   readonly names = input<ReadonlyMap<string, string>>(new Map());
+  /** Symbols link to their instrument page only while "Show charts" is on. */
+  readonly linkSymbols = input(false);
   protected readonly columns = Object.keys(SORT_KEYS) as Column[];
   protected readonly query = signal('');
   protected readonly sort = signal<Sort>({ active: '', direction: '' });
