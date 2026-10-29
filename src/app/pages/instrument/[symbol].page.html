@@ -3,7 +3,15 @@
   <h1>{{ symbol() }}</h1>
 
   @if (producer.started()) {
-    <app-status-badge class="self-start" [status]="producer.status()" [error]="producer.error()" />
+    <div class="flex flex-wrap items-center gap-6">
+      <app-status-badge [status]="producer.status()" [error]="producer.error()" />
+      @if (row(); as row) {
+        <p class="m-0" aria-label="Current spread">
+          <span class="text-hint">Spread</span>
+          {{ (row.spreadCents | cents | currency: 'USD') ?? '—' }}
+        </p>
+      }
+    </div>
     @if (inRun()) {
       <app-price-chart [events]="events()" />
       <app-event-table [events]="events()" />

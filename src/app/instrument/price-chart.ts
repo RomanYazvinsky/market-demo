@@ -20,6 +20,7 @@ export interface PriceSeries {
   prices: number[];
   bids: number[];
   asks: number[];
+  spreads: number[];
 }
 
 export interface PriceChartHandle {
@@ -39,6 +40,7 @@ export function toPriceSeries(events: TickerEvent[]): PriceSeries {
     prices: events.map((event) => event.priceCents / 100),
     bids: events.map((event) => event.bidCents / 100),
     asks: events.map((event) => event.askCents / 100),
+    spreads: events.map((event) => (event.askCents - event.bidCents) / 100),
   };
 }
 

@@ -68,4 +68,16 @@ describe('InstrumentPage', () => {
     expect(screen.getByLabelText('Loading instrument data')).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
+
+  test('U38 shows the current spread', async ({ producer, providers }) => {
+    producer.rows.set([{ ...emptyRow('AAPL'), spreadCents: 4 }]);
+    await renderPage(providers);
+    expect(screen.getByLabelText('Current spread')).toHaveTextContent('$0.04');
+  });
+
+  test('U38 the spread is unavailable before data', async ({ producer, providers }) => {
+    producer.rows.set([emptyRow('AAPL')]);
+    await renderPage(providers);
+    expect(screen.getByLabelText('Current spread')).toHaveTextContent('—');
+  });
 });

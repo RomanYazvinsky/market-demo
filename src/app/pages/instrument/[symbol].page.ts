@@ -1,3 +1,4 @@
+import { CurrencyPipe } from '@angular/common';
 import { Component, DestroyRef, computed, effect, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -8,12 +9,13 @@ import { EventTable } from '../../instrument/event-table';
 import { PriceChart } from '../../instrument/price-chart';
 import { EVENT_LOG_SIZE } from '../../producer/protocol';
 import { ProducerService } from '../../producer/producer.service';
+import { CentsPipe } from '../../shared/cents.pipe';
 
 export const routeMeta: RouteMeta = { title: 'Instrument' };
 
 @Component({
   selector: 'app-instrument-page',
-  imports: [RouterLink, StatusBadge, PriceChart, EventTable],
+  imports: [RouterLink, CurrencyPipe, CentsPipe, StatusBadge, PriceChart, EventTable],
   host: { class: 'block' },
   templateUrl: './[symbol].page.html',
 })
@@ -24,7 +26,8 @@ export default class InstrumentPage {
   protected readonly symbol = toSignal(inject(ActivatedRoute).paramMap.pipe(map((params) => params.get('symbol') ?? '')), {
     requireSync: true,
   });
-  protected readonly inRun = computed(() => this.producer.rows().some((row) => row.symbol === this.symbol()));
+  protected readonly row = computed(() => this.producer.rows().find((row) => row.symbol === this.symbol()));
+  protected readonly inRun = computed(() => this.row() !== undefined);
   protected readonly events = computed(() => {
     const watched = this.producer.watched();
     return watched?.symbol === this.symbol() ? watched.events : [];

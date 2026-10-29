@@ -32,6 +32,7 @@ export function createPriceChart(canvas: HTMLCanvasElement): PriceChartHandle {
         line('Trade', '--mat-sys-on-surface', { showLine: false, pointRadius: 2 }),
         line('Bid', '--mat-sys-primary', { stepped: 'after' }),
         line('Ask', '--mat-sys-error', { stepped: 'after' }),
+        line('Spread', '--mat-sys-outline', { stepped: 'after', borderDash: [4, 3], yAxisID: 'spread' }),
       ],
     },
     options: {
@@ -43,6 +44,14 @@ export function createPriceChart(canvas: HTMLCanvasElement): PriceChartHandle {
       scales: {
         x: { type: 'linear', ticks: { precision: 0 }, title: { display: true, text: 'Event #' } },
         y: { type: 'linear', ticks: { callback: (value) => dollars.format(Number(value)) } },
+        spread: {
+          type: 'linear',
+          position: 'right',
+          beginAtZero: true,
+          grid: { drawOnChartArea: false },
+          title: { display: true, text: 'Spread' },
+          ticks: { callback: (value) => dollars.format(Number(value)) },
+        },
       },
       plugins: {
         tooltip: { callbacks: { label: (item) => `${item.dataset.label}: ${dollars.format(item.parsed.y ?? 0)}` } },
@@ -55,6 +64,7 @@ export function createPriceChart(canvas: HTMLCanvasElement): PriceChartHandle {
       chart.data.datasets[0].data = points(series.prices);
       chart.data.datasets[1].data = points(series.bids);
       chart.data.datasets[2].data = points(series.asks);
+      chart.data.datasets[3].data = points(series.spreads);
       chart.options.scales!['x']!.min = series.sequences.at(0);
       chart.options.scales!['x']!.max = series.sequences.at(-1);
       chart.update('none');

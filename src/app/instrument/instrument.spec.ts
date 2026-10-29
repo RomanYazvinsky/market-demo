@@ -19,9 +19,9 @@ class FakeChart implements PriceChartHandle {
 }
 
 describe('toPriceSeries', () => {
-  it('U34 maps events to price, bid and ask series in dollars', () => {
+  it('U34 U38 maps events to price, bid, ask and spread series in dollars', () => {
     expect(toPriceSeries([BUY, SELL])).toEqual({
-      sequences: [2, 5], prices: [102, 101.96], bids: [101.96, 101.96], asks: [102, 102],
+      sequences: [2, 5], prices: [102, 101.96], bids: [101.96, 101.96], asks: [102, 102], spreads: [0.04, 0.04],
     });
   });
 });
