@@ -4,6 +4,8 @@
 
 **Status:** Chosen direction; implementation not started. `06-simplified-model.md` is rejected (its compromises: levels never refill, the order remainder is forced through). Start from the current maker/taker generator. Imbalance ±1 is accepted by design: TASK.md allows book quantities of 0.
 
+**Update (2026-10-29):** the maker's 1¢ improve (`ImproveChancePct`) was replaced by `SweepChancePct` (W34): with that chance a taker's budget is the level's value plus a normal order, and the remainder is cancelled. References below to maker improvement are outdated; with this plan the sweep's remainder is what continues to the next level.
+
 **Goal:** Continue a budget-based taker order across exhausted price levels, emitting one post-fill `MarketUpdate` per execution and preserving overflow across batch boundaries.
 
 **Architecture:** Keep the one-level book, maker orders, seeded randomness and existing refresh/spread-cap rules. An exhausted level is published with quantity 0, then replaced with synthetic liquidity when the same taker can afford another execution. The generator owns only the active order (instrument, side, remaining budget; a zero budget means no order). The next execution of a sweep is computed lazily, when the next output slot needs it. Neither the bridge nor the worker changes.

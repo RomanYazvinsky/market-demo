@@ -65,24 +65,21 @@ func (orderBook *book) clampSpread(config ModelConfig, moved Side) {
 	}
 }
 
-// makerAdd adds liquidity on side. With improve (and room inside the spread) the maker
-// sets a new best level 1¢ better holding only its shares; otherwise it joins the best level.
-func (orderBook *book) makerAdd(side Side, budgetCents int64, improve bool) {
-	if improve && orderBook.ask-orderBook.bid > 1 {
-		if side == Bid {
-			orderBook.bid++
-			orderBook.bidQty = sharesFor(budgetCents, orderBook.bid)
-		} else {
-			orderBook.ask--
-			orderBook.askQty = sharesFor(budgetCents, orderBook.ask)
-		}
-		return
-	}
+// makerAdd adds budget/price shares to the best level on side.
+func (orderBook *book) makerAdd(side Side, budgetCents int64) {
 	if side == Bid {
 		orderBook.bidQty += sharesFor(budgetCents, orderBook.bid)
 	} else {
 		orderBook.askQty += sharesFor(budgetCents, orderBook.ask)
 	}
+}
+
+// levelCents is the money resting at the best level on side.
+func (orderBook *book) levelCents(side Side) int64 {
+	if side == Bid {
+		return orderBook.bid * orderBook.bidQty
+	}
+	return orderBook.ask * orderBook.askQty
 }
 
 // takerTrade takes liquidity from side (Ask for a buyer, Bid for a seller): it fills

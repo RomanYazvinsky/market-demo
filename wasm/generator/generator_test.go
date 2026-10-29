@@ -209,6 +209,46 @@ func TestW24_QuotesMoveAwayOnlyAfterExhaustion(test *testing.T) {
 	}
 }
 
+// tradedLevelEmptied reports whether the update's trade left its level with 0 shares.
+func tradedLevelEmptied(update MarketUpdate) bool {
+	if int64(update.PriceCents) == int64(update.AskCents) {
+		return update.AskQuantity == 0
+	}
+	return update.BidQuantity == 0
+}
+
+func TestW34_EverySweepEmptiesTheTradedLevel(test *testing.T) {
+	config := DefaultModelConfig()
+	config.SweepChancePct = 100
+	generator, err := New(42, 3, config)
+	if err != nil {
+		test.Fatal(err)
+	}
+	for index, update := range batch(generator, 1000) {
+		if !tradedLevelEmptied(update) {
+			test.Fatalf("update %d: a sweep left shares at the traded level: %+v", index, update)
+		}
+	}
+}
+
+func TestW34_SweepRateFollowsConfig(test *testing.T) {
+	updates, err := sample()
+	if err != nil {
+		test.Fatalf("sample: %v", err)
+	}
+	emptied := 0
+	for _, update := range updates {
+		if tradedLevelEmptied(update) {
+			emptied++
+		}
+	}
+	share := 100 * float64(emptied) / float64(len(updates))
+	want := float64(DefaultModelConfig().SweepChancePct)
+	if share < want || share > want+3 { // sweeps, plus the rare natural exhaustion of a level
+		test.Fatalf("traded level emptied in %.2f%% of updates, want %.0f–%.0f%%", share, want, want+3)
+	}
+}
+
 func TestW12_DeterministicForSeed(test *testing.T) {
 	if !slices.Equal(batch(newGenerator(test, 7, 5), 500), batch(newGenerator(test, 7, 5), 500)) {
 		test.Fatal("same seed produced different batches")

@@ -22,11 +22,11 @@ type ModelConfig struct {
 	LevelGapBps                            int64 // distance of a new level from an exhausted one (5; min 1¢)
 	InitialSpreadBps                       int64 // starting spread                         (5; min 1¢)
 	MaxSpreadBps                           int64 // spread cap                              (20; min 1¢)
-	ImproveChancePct                       int64 // chance a maker improves the best price by 1¢ instead of joining it (30)
+	SweepChancePct                         int64 // chance a taker order is larger than the best level, so it empties it (10)
 }
 
 func DefaultModelConfig() ModelConfig
-func (c ModelConfig) Validate() error // min <= max, all > 0 (ImproveChancePct 0–100), MinStartPriceCents >= 2
+func (c ModelConfig) Validate() error // min <= max, all > 0 (SweepChancePct 0–100), MinStartPriceCents >= 2
 
 type Generator struct{ /* config, per-instrument one-level books, seeded PRNG */ }
 
@@ -59,7 +59,8 @@ func sharesFor(moneyCents, priceCents int64) int64    // max(1, money/price)
 
 func (b *book) refresh(c ModelConfig, depthCents int64) (moved Side, ok bool) // replace an exhausted level
 func (b *book) clampSpread(c ModelConfig, moved Side)                        // pull the other side in if spread > cap
-func (b *book) makerAdd(s Side, budgetCents int64, improve bool)             // add liquidity
+func (b *book) makerAdd(s Side, budgetCents int64)                           // add liquidity at the best level
+func (b *book) levelCents(s Side) int64                                      // money resting at the best level
 func (b *book) takerTrade(s Side, budgetCents int64) (priceCents, filled int64) // take liquidity = the trade
 ```
 
@@ -80,7 +81,7 @@ Source column: **T** = TASK.md §3, **S** = design spec / author decision, **C**
 | W04 | Instrument count outside 1–50 is rejected with a readable error | T, C | `TestW04_InstrumentCountRange` | `W03 W04 rejects out-of-range settings with a message` |
 | W05 | Instrument index is in [0, count); every instrument occurs; an instrument may repeat within a batch | T | `TestW05_InstrumentIndexInRange`, `TestW05_EveryInstrumentAppears`, `TestW05_InstrumentsMayRepeatInBatch` | `W02 W05–W10 …` |
 | W06 | Prices are positive (an exhausted bid never drops below 1¢) | T | `TestW06_PricesPositive`, `TestW06_RefreshKeepsBidPositive` | `W02 W05–W10 …` |
-| W07 | Bid is below ask; spread stays within 1¢…`spreadCap(ask)` | T | `TestW07_BidBelowAsk`, `TestW07_ClampSpreadPullsOtherSideIn`, `TestW07_MakerImproveNarrowsSpread`, `TestW07_MakerImproveNeverCrosses` | `W02 W05–W10 …` |
+| W07 | Bid is below ask; spread stays within 1¢…`spreadCap(ask)` | T | `TestW07_BidBelowAsk`, `TestW07_ClampSpreadPullsOtherSideIn` | `W02 W05–W10 …` |
 | W08 | Trade price is that update's bid or ask (buy at ask, sell at bid) | T | `TestW08_TradeAtBidOrAsk`, `TestW08_SellTradesAtBid` | `W02 W05–W10 …` |
 | W09 | Trade quantities are positive (a budget below the price still buys 1 share) | T | `TestW09_TradeQuantityPositive`, `TestW09_SmallBudgetTradesOneShare` | `W02 W05–W10 …` |
 | W10 | Book quantities are non-negative | T | `TestW10_BookQuantitiesNonNegative` | `W02 W05–W10 …` |
@@ -99,6 +100,7 @@ Source column: **T** = TASK.md §3, **S** = design spec / author decision, **C**
 | W24 | A level moves away only after it was exhausted (ask up only if askQty hit 0, bid down only if bidQty hit 0) | S | `TestW24_RefreshMovesOnlyExhaustedLevel`, `TestW24_RefreshNoopWhenLevelsHaveShares`, `TestW24_QuotesMoveAwayOnlyAfterExhaustion` | — |
 | W25 | Model numbers come from `ModelConfig`; invalid configs are rejected | S | `TestW25_DefaultConfigValid`, `TestW25_InvalidConfigRejected` | — (bridge always uses the defaults) |
 | W26 | A maker joining the best price adds `budget/price` shares to it | S | `TestW26_MakerJoinAddsShares` | — |
+| W34 | With `SweepChancePct` a taker's budget is the level's value plus a normal order, so it empties the level (the rest is cancelled); this is what moves prices. Replaced the maker's 1¢ improve (`ImproveChancePct`), whose thin levels moved quotes on 42% of updates | S | `TestW34_SweepBudgetEmptiesLevel`, `TestW34_EverySweepEmptiesTheTradedLevel`, `TestW34_SweepRateFollowsConfig` | — |
 | W22 | Randomness and price logic run in Wasm, not TypeScript | T | — | — *Review check:* `grep -rnE "Math\.random\|crypto\.getRandomValues" src/app` may show only the seed in `producer.worker.ts`. |
 
 The Go invariant tests (W05–W10) run over one shared sample: seed 42, 5 instruments, 200 batches of 1000. It's computed once with `sync.OnceValue` so each requirement has its own focused test without regenerating the data.
@@ -399,25 +401,17 @@ func TestW08_SellTradesAtBid(t *testing.T) {
 
 func TestW26_MakerJoinAddsShares(t *testing.T) {
 	b := alfa()
-	b.makerAdd(Ask, 100_000, false)
+	b.makerAdd(Ask, 100_000)
 	if b.ask != 10200 || b.askQty != 59 {
 		t.Fatalf("got ask %d askQty %d, want 10200 / 59", b.ask, b.askQty)
 	}
 }
 
-func TestW07_MakerImproveNarrowsSpread(t *testing.T) {
+func TestW34_SweepBudgetEmptiesLevel(t *testing.T) {
 	b := alfa()
-	b.makerAdd(Bid, 100_000, true)
-	if b.bid != 10197 || b.bidQty != 9 { // new best level: 1¢ better, only the maker's shares
-		t.Fatalf("got bid %d bidQty %d, want 10197 / 9", b.bid, b.bidQty)
-	}
-}
-
-func TestW07_MakerImproveNeverCrosses(t *testing.T) {
-	b := book{bid: 10199, ask: 10200, bidQty: 600, askQty: 50}
-	b.makerAdd(Bid, 100_000, true) // spread is already 1¢: joins instead
-	if b.bid != 10199 || b.bidQty != 609 {
-		t.Fatalf("got bid %d bidQty %d, want 10199 / 609", b.bid, b.bidQty)
+	price, filled := b.takerTrade(Ask, b.levelCents(Ask)+100_000) // the level's value plus $1,000
+	if price != 10200 || filled != 50 || b.askQty != 0 {
+		t.Fatalf("got price %d filled %d askQty %d, want 10200 / 50 / 0", price, filled, b.askQty)
 	}
 }
 
@@ -480,8 +474,8 @@ func TestW25_InvalidConfigRejected(t *testing.T) {
 		"zero depth":                 func(c *ModelConfig) { c.MinDepthCents = 0 },
 		"zero gap":                   func(c *ModelConfig) { c.LevelGapBps = 0 },
 		"max spread below initial":   func(c *ModelConfig) { c.MaxSpreadBps = c.InitialSpreadBps - 1 },
-		"improve chance above 100":   func(c *ModelConfig) { c.ImproveChancePct = 101 },
-		"improve chance negative":    func(c *ModelConfig) { c.ImproveChancePct = -1 },
+		"sweep chance above 100":     func(c *ModelConfig) { c.SweepChancePct = 101 },
+		"sweep chance negative":      func(c *ModelConfig) { c.SweepChancePct = -1 },
 	}
 	for name, mutate := range cases {
 		cfg := DefaultModelConfig()
@@ -541,11 +535,11 @@ func TestW15_EncodeDoesNotAllocate(t *testing.T) {
 **Files:** `wasm/generator/config.go`, `wasm/generator/book.go`, `wasm/generator/generator.go`, `wasm/generator/encode.go`
 
 - [ ] **Step 1:** Range checks with messages naming field and range, e.g. `instrumentCount must be 1-50, got 0`, `updatesPerBatch must be 1-1000, got 1001`.
-- [ ] **Step 2: Config.** `DefaultModelConfig()` returns the defaults from the interface block. `Validate()` checks min ≤ max for each range, all values > 0, `MinStartPriceCents ≥ 2` (so a 1¢ bid below a ≥2¢ ask exists), `InitialSpreadBps ≤ MaxSpreadBps` and `0 ≤ ImproveChancePct ≤ 100`. Error messages name the field.
+- [ ] **Step 2: Config.** `DefaultModelConfig()` returns the defaults from the interface block. `Validate()` checks min ≤ max for each range, all values > 0, `MinStartPriceCents ≥ 2` (so a 1¢ bid below a ≥2¢ ask exists), `InitialSpreadBps ≤ MaxSpreadBps` and `0 ≤ SweepChancePct ≤ 100`. Error messages name the field.
 - [ ] **Step 3: Book methods** (`book.go`). Each step is a pure function of the book and its arguments, with no randomness. They're tested by `book_test.go`.
   - `bps(price, bps) = max(1, price*bps/10_000)`. `sharesFor(money, price) = max(1, money/price)`.
   - `takerTrade(s, budget)`: on side `s` (Ask for a buyer, Bid for a seller), `wanted := sharesFor(budget, levelPrice)` and `filled := min(wanted, levelQty)`. Subtract `filled` and return `(levelPrice, filled)`. Callers guarantee `levelQty ≥ 1` (refresh runs first). The rest of the order is cancelled, because only the best level is filled.
-  - `makerAdd(s, budget, improve)`: if `improve` and `ask − bid > 1`, move side `s` 1¢ toward the other side and set its quantity to `sharesFor(budget, newPrice)`. The new best level holds only this maker's shares. Otherwise join: add `sharesFor(budget, price)` to side `s`.
+  - `makerAdd(s, budget)`: join the best level, adding `sharesFor(budget, price)` to side `s`. `levelCents(s)` is `price × qty` of that level.
   - `refresh(c, depth)`: if `askQty == 0`, set `ask += c.gap(ask)` and `askQty = sharesFor(depth, ask)`, then return `(Ask, true)`. Else if `bidQty == 0`, set `bid = max(1, bid − c.gap(bid))` and `bidQty = sharesFor(depth, bid)`. If `bid ≥ ask` after that, which can only happen at the 1¢ floor, set `ask = bid + 1`. Return `(Bid, true)`. Otherwise return `(_, false)`. At most one side is empty, since each update makes one trade.
   - `clampSpread(c, moved)`: if `ask − bid > c.spreadCap(ask)`, move the side that did not move. After an Ask move, `bid = ask − cap`; after a Bid move, `ask = bid + cap`. The moved-in level keeps its quantity.
   - Quantities are `int64` inside the book and saturate at `math.MaxInt32` when emitted, so long runs of maker joins can't overflow the int32 wire format.
@@ -561,10 +555,10 @@ func TestW15_EncodeDoesNotAllocate(t *testing.T) {
   - `NextBatch`, for each `dst[k]`:
     1. Pick `i := rng.IntN(len(books))` uniformly. An instrument may repeat or be missing in a batch, by design.
     2. Call `refresh(cfg, uniformDepth())`. If it moved a side, call `clampSpread(cfg, moved)`.
-    3. A maker adds on side `Bid`/`Ask` (coin flip), with budget `uniformOrder()` and `improve := rng.IntN(100) < ImproveChancePct`.
-    4. A taker trades: a coin flip picks a buyer (side `Ask`) or seller (side `Bid`), with budget `uniformOrder()`. That gives `(price, filled)`.
+    3. A maker joins side `Bid`/`Ask` (coin flip) with budget `uniformOrder()`.
+    4. A taker trades: a coin flip picks a buyer (side `Ask`) or seller (side `Bid`), `sweep := rng.Int64N(100) < SweepChancePct`, budget `uniformOrder()`, plus `levelCents(side)` on a sweep so the level is emptied. That gives `(price, filled)`.
     5. Write `dst[k] = {i, price, filled, bid, ask, bidQty, askQty}`. Quantities are after the fill, so a level can show 0. It moves at that instrument's next update (step 2), which keeps the price equal to that update's bid or ask (W08).
-  - Draw order is fixed (instrument, depth, maker side, maker budget, improve, taker side, taker budget), so a seed always gives the same stream (W12).
+  - Draw order is fixed (instrument, depth, maker side, maker budget, taker side, sweep, taker budget), so a seed always gives the same stream (W12).
 - [ ] **Step 5:** `Encode`: `binary.LittleEndian.PutUint32(dst[o:], uint32(int32(field)))` for the 7 fields in wire order.
 - [ ] **Step 6: Run** `pnpm test:go`. Expected: PASS (all `TestW…`).
 - [ ] **Step 7: Commit** with `git commit -am "feat(wasm): order-driven market model, generator and encoder"`.

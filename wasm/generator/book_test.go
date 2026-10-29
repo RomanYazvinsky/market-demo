@@ -40,25 +40,20 @@ func TestW08_SellTradesAtBid(test *testing.T) {
 
 func TestW26_MakerJoinAddsShares(test *testing.T) {
 	orderBook := alfa()
-	orderBook.makerAdd(Ask, 100_000, false)
+	orderBook.makerAdd(Ask, 100_000)
 	if orderBook.ask != 10200 || orderBook.askQty != 59 {
 		test.Fatalf("got ask %d askQty %d, want 10200 / 59", orderBook.ask, orderBook.askQty)
 	}
 }
 
-func TestW07_MakerImproveNarrowsSpread(test *testing.T) {
+func TestW34_SweepBudgetEmptiesLevel(test *testing.T) {
 	orderBook := alfa()
-	orderBook.makerAdd(Bid, 100_000, true)
-	if orderBook.bid != 10197 || orderBook.bidQty != 9 { // new best level: 1¢ better, only the maker's shares
-		test.Fatalf("got bid %d bidQty %d, want 10197 / 9", orderBook.bid, orderBook.bidQty)
+	price, filled := orderBook.takerTrade(Ask, orderBook.levelCents(Ask)+100_000) // the level's value plus $1,000
+	if price != 10200 || filled != 50 || orderBook.askQty != 0 {
+		test.Fatalf("got price %d filled %d askQty %d, want 10200 / 50 / 0", price, filled, orderBook.askQty)
 	}
-}
-
-func TestW07_MakerImproveNeverCrosses(test *testing.T) {
-	orderBook := book{bid: 10199, ask: 10200, bidQty: 600, askQty: 50}
-	orderBook.makerAdd(Bid, 100_000, true) // spread is already 1¢: joins instead
-	if orderBook.bid != 10199 || orderBook.bidQty != 609 {
-		test.Fatalf("got bid %d bidQty %d, want 10199 / 609", orderBook.bid, orderBook.bidQty)
+	if orderBook.levelCents(Bid) != 10196*600 {
+		test.Fatalf("levelCents(Bid) = %d, want %d", orderBook.levelCents(Bid), 10196*600)
 	}
 }
 
@@ -121,8 +116,8 @@ func TestW25_InvalidConfigRejected(test *testing.T) {
 		"zero depth":                 func(config *ModelConfig) { config.MinDepthCents = 0 },
 		"zero gap":                   func(config *ModelConfig) { config.LevelGapBps = 0 },
 		"max spread below initial":   func(config *ModelConfig) { config.MaxSpreadBps = config.InitialSpreadBps - 1 },
-		"improve chance above 100":   func(config *ModelConfig) { config.ImproveChancePct = 101 },
-		"improve chance negative":    func(config *ModelConfig) { config.ImproveChancePct = -1 },
+		"sweep chance above 100":     func(config *ModelConfig) { config.SweepChancePct = 101 },
+		"sweep chance negative":      func(config *ModelConfig) { config.SweepChancePct = -1 },
 	}
 	for name, mutate := range cases {
 		config := DefaultModelConfig()

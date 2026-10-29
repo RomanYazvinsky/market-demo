@@ -57,7 +57,7 @@ func ValidateBatchSize(updatesPerBatch int) error {
 func (generator *Generator) InstrumentCount() int { return len(generator.books) }
 
 // NextBatch fills every element of dst in place, without allocating. The draw order per
-// update is fixed (instrument, depth, maker side, maker budget, improve, taker side,
+// update is fixed (instrument, depth, maker side, maker budget, taker side, sweep,
 // taker budget), so a seed always gives the same stream.
 func (generator *Generator) NextBatch(dst []MarketUpdate) {
 	config := generator.config
@@ -67,12 +67,14 @@ func (generator *Generator) NextBatch(dst []MarketUpdate) {
 		if moved, ok := orderBook.refresh(config, generator.uniformDepth()); ok {
 			orderBook.clampSpread(config, moved)
 		}
-		makerSide := generator.side()
-		makerBudget := generator.uniformOrder()
-		improve := generator.random.Int64N(100) < config.ImproveChancePct
-		orderBook.makerAdd(makerSide, makerBudget, improve)
+		orderBook.makerAdd(generator.side(), generator.uniformOrder())
 		takerSide := generator.side()
-		price, filled := orderBook.takerTrade(takerSide, generator.uniformOrder())
+		sweep := generator.random.Int64N(100) < config.SweepChancePct
+		takerBudget := generator.uniformOrder()
+		if sweep { // more than the level holds; the rest is cancelled
+			takerBudget += orderBook.levelCents(takerSide)
+		}
+		price, filled := orderBook.takerTrade(takerSide, takerBudget)
 		// Quantities are after the fill, so a level can show 0; it moves at that
 		// instrument's next update, which keeps price equal to this update's bid or ask.
 		dst[index] = MarketUpdate{

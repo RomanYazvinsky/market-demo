@@ -12,7 +12,7 @@ type ModelConfig struct {
 	LevelGapBps                            int64 // distance of a new level from an exhausted one (min 1¢)
 	InitialSpreadBps                       int64 // starting spread (min 1¢)
 	MaxSpreadBps                           int64 // spread cap (min 1¢)
-	ImproveChancePct                       int64 // chance a maker improves the best price by 1¢ instead of joining it
+	SweepChancePct                         int64 // chance a taker order is larger than the best level, so it empties it
 }
 
 func DefaultModelConfig() ModelConfig {
@@ -23,13 +23,13 @@ func DefaultModelConfig() ModelConfig {
 		LevelGapBps:      5,
 		InitialSpreadBps: 5,
 		MaxSpreadBps:     20,
-		ImproveChancePct: 30,
+		SweepChancePct:   10,
 	}
 }
 
 // Validate checks min <= max for each range, all values > 0, MinStartPriceCents >= 2
 // (so a 1¢ bid below a >= 2¢ ask exists), InitialSpreadBps <= MaxSpreadBps and
-// 0 <= ImproveChancePct <= 100.
+// 0 <= SweepChancePct <= 100.
 func (config ModelConfig) Validate() error {
 	ranges := []struct {
 		name     string
@@ -66,8 +66,8 @@ func (config ModelConfig) Validate() error {
 	if config.InitialSpreadBps > config.MaxSpreadBps {
 		return fmt.Errorf("InitialSpreadBps (%d) must be <= MaxSpreadBps (%d)", config.InitialSpreadBps, config.MaxSpreadBps)
 	}
-	if config.ImproveChancePct < 0 || config.ImproveChancePct > 100 {
-		return fmt.Errorf("ImproveChancePct must be 0-100, got %d", config.ImproveChancePct)
+	if config.SweepChancePct < 0 || config.SweepChancePct > 100 {
+		return fmt.Errorf("SweepChancePct must be 0-100, got %d", config.SweepChancePct)
 	}
 	return nil
 }
