@@ -31,6 +31,7 @@
 | 05 Integration | `05-integration.md` | anything; `README.md`, `progress.md`, `.github/**` | Merged, works in browser, documented, auto-deployed. |
 | 06 Simplified model (rejected) | `06-simplified-model.md` | — | Never-empty model; rejected in favour of 07, not implemented. |
 | 07 Multi-level fills (chosen, not started) | `07-multi-level-fills.md` | `wasm/generator/**`, docs | Budget continuations across levels and batches (lazy), post-fill snapshots; retains maker/taker. |
+| 08 Instrument page (planned) | `08-instrument-page.md` | `src/app/producer/{protocol,event-log,producer-controller,producer.service}.ts`, `src/app/instrument/**`, `src/app/pages/instrument/**`, `src/app/dashboard/market-table.*`, `vite.config.ts`, `package.json`, docs | `/instrument/:symbol` with a Chart.js price graph and the last 100 events. |
 
 ### Rules
 
