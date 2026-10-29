@@ -1,0 +1,21 @@
+:host {
+  display: block;
+}
+
+.wrap {
+  border-radius: var(--mat-sys-corner-medium, 12px);
+  border: 1px solid var(--mat-sys-outline-variant);
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.side[data-side='buy'] {
+  color: var(--mat-sys-primary);
+}
+
+.side[data-side='sell'] {
+  color: var(--mat-sys-error);
+}

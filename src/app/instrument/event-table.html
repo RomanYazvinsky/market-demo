@@ -1,0 +1,40 @@
+<div class="wrap max-h-[32rem] overflow-auto">
+  <table mat-table [dataSource]="newestFirst()" [trackBy]="trackBySequence" aria-label="Events">
+    <ng-container matColumnDef="sequence">
+      <th mat-header-cell *matHeaderCellDef class="num">#</th>
+      <td mat-cell *matCellDef="let event" class="num">{{ event.sequence }}</td>
+    </ng-container>
+    <ng-container matColumnDef="time">
+      <th mat-header-cell *matHeaderCellDef class="num">Time</th>
+      <td mat-cell *matCellDef="let event" class="num">{{ event.timeMs | date: 'HH:mm:ss.SSS' }}</td>
+    </ng-container>
+    <ng-container matColumnDef="side">
+      <th mat-header-cell *matHeaderCellDef>Side</th>
+      <td mat-cell *matCellDef="let event" class="side" [attr.data-side]="tradeSide(event)">
+        {{ tradeSide(event) === 'buy' ? 'Buy' : 'Sell' }}
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="price">
+      <th mat-header-cell *matHeaderCellDef class="num">Price</th>
+      <td mat-cell *matCellDef="let event" class="num">{{ event.priceCents | cents | currency: 'USD' }}</td>
+    </ng-container>
+    <ng-container matColumnDef="quantity">
+      <th mat-header-cell *matHeaderCellDef class="num">Qty</th>
+      <td mat-cell *matCellDef="let event" class="num">{{ event.quantity | number }}</td>
+    </ng-container>
+    <ng-container matColumnDef="bid">
+      <th mat-header-cell *matHeaderCellDef class="num">Bid</th>
+      <td mat-cell *matCellDef="let event" class="num">{{ event.bidCents | cents | currency: 'USD' }} × {{ event.bidQty | number }}</td>
+    </ng-container>
+    <ng-container matColumnDef="ask">
+      <th mat-header-cell *matHeaderCellDef class="num">Ask</th>
+      <td mat-cell *matCellDef="let event" class="num">{{ event.askCents | cents | currency: 'USD' }} × {{ event.askQty | number }}</td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columns; sticky: true"></tr>
+    <tr mat-row *matRowDef="let event; columns: columns"></tr>
+    <tr class="mat-mdc-row" *matNoDataRow>
+      <td class="mat-mdc-cell" [attr.colspan]="columns.length">No events yet</td>
+    </tr>
+  </table>
+</div>

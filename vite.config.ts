@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => ({
       '@angular/material/sort',
       '@angular/material/table',
       '@angular/material/toolbar',
+      'chart.js',
     ],
   },
   worker: {
