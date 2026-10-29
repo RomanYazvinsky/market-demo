@@ -43,6 +43,17 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('button', { name: /pause|resume/i })).toBeDisabled();
   });
 
+  test('U44 before the first run shows Idle, the instrument rows and a Start button', async ({ producer, providers }) => {
+    producer.status.set('idle');
+    producer.rows.set([emptyRow('ALFA')]);
+    await render(DashboardPage, { providers });
+    expect(screen.getByRole('status')).toHaveTextContent(/idle/i);
+    expect(symbols()).toEqual(['ALFA']);
+    await userEvent.click(screen.getByRole('button', { name: 'Start' }));
+    expect(producer.start).toHaveBeenCalledTimes(1);
+    expect(producer.pause).not.toHaveBeenCalled();
+  });
+
   test('U12 U21 shows status and error text', async ({ producer, providers }) => {
     producer.status.set('error');
     producer.error.set('Failed to load /producer.wasm: HTTP 404');
@@ -52,7 +63,7 @@ describe('DashboardPage', () => {
   });
 
   test('U22 shows a skeleton until the producer has started, heading always', async ({ producer, providers }) => {
-    producer.started.set(false);
+    producer.ready.set(false);
     await render(DashboardPage, { providers });
     expect(screen.getByRole('heading', { name: 'Market dashboard' })).toBeInTheDocument();
     expect(screen.getByLabelText('Loading market data')).toHaveAttribute('aria-busy', 'true');

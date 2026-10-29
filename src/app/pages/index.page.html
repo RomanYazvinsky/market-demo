@@ -3,7 +3,7 @@
     <h1>Market dashboard</h1>
   </header>
 
-  @if (producer.started()) {
+  @if (producer.ready()) {
     <div class="flex flex-wrap items-center justify-between gap-4">
       <app-status-badge [status]="producer.status()" [error]="producer.error()" />
       <app-producer-toggle />

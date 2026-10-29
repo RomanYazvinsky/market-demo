@@ -67,7 +67,7 @@ describe('InstrumentPage', () => {
   });
 
   test('U35 shows a skeleton until the producer has started, heading always', async ({ producer, providers }) => {
-    producer.started.set(false);
+    producer.ready.set(false);
     await renderPage(providers);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('AAPL');
     expect(screen.getByLabelText('Loading instrument data')).toHaveAttribute('aria-busy', 'true');

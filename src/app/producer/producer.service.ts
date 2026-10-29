@@ -52,7 +52,7 @@ export class ProducerService {
   private readonly _error = signal<string | null>(null);
   private readonly _rows = signal<MetricsRow[]>([]);
   private readonly _settings = signal<ProducerSettings>(DEFAULT_SETTINGS);
-  private readonly _started = signal(false);
+  private readonly _ready = signal(false);
   private readonly _watched = signal<WatchedEvents | null>(null);
   private readonly _names = signal<ReadonlyMap<string, string>>(new Map());
 
@@ -60,8 +60,8 @@ export class ProducerService {
   readonly error = this._error.asReadonly();
   readonly rows = this._rows.asReadonly();
   readonly settings = this._settings.asReadonly();
-  /** true once the first status from the current run arrived (drives skeletons). */
-  readonly started = this._started.asReadonly();
+  /** true once loaded (idle), a run reported its first status, or loading failed; drives skeletons. */
+  readonly ready = this._ready.asReadonly();
   /** Latest events of the symbol passed to watch(); empty until the worker reports them. */
   readonly watched = this._watched.asReadonly();
   /** Company name per ticker, empty until the instrument list is loaded. */
@@ -69,9 +69,9 @@ export class ProducerService {
 
   private channel?: RxWorker<ToWorker, FromWorker>;
   private symbols?: readonly string[];
-  private runId = 1;
+  private runId = 0;
   private watchedSymbol: string | null = null;
-  private starting?: Promise<void>;
+  private loading?: Promise<void>;
   private destroyed = false;
 
   constructor() {
@@ -81,9 +81,14 @@ export class ProducerService {
     });
   }
 
-  /** Idempotent; resolves immediately on the server. */
-  start(): Promise<void> {
-    return (this.starting ??= isPlatformBrowser(this.platformId) ? this.doStart() : Promise.resolve());
+  /** Loads the instrument list and the worker without starting a run. Idempotent; resolves immediately on the server. */
+  load(): Promise<void> {
+    return (this.loading ??= isPlatformBrowser(this.platformId) ? this.doLoad() : Promise.resolve());
+  }
+
+  /** The Start button: the first run, with the current settings. */
+  start(): void {
+    this.apply(this._settings());
   }
 
   apply(settings: ProducerSettings): void {
@@ -97,9 +102,9 @@ export class ProducerService {
     if (config && this.channel) {
       this.channel.send({ type: 'apply', runId: this.runId, config });
     } else {
-      // No live worker: either still starting (start() sends the latest settings once it is up)
-      // or a previous start/worker failed, in which case start() retries.
-      void this.start();
+      // No live worker: either still loading (load() sends the latest settings once it is up)
+      // or a previous load/worker failed, in which case load() retries.
+      void this.load();
     }
   }
 
@@ -118,7 +123,7 @@ export class ProducerService {
     this.channel?.send({ type: 'resume', runId: this.runId });
   }
 
-  private async doStart(): Promise<void> {
+  private async doLoad(): Promise<void> {
     const [symbols, worker] = await Promise.allSettled([this.loadSymbols(), this.loadWorker()]);
     if (symbols.status === 'rejected') {
       if (worker.status === 'fulfilled') worker.value.terminate();
@@ -154,14 +159,19 @@ export class ProducerService {
     const config = toProducerConfig(this._settings(), this.symbols);
     this._rows.set(config.symbols.map(emptyRow));
     if (this.watchedSymbol !== null) channel.send({ type: 'watch', symbol: this.watchedSymbol });
-    channel.send({ type: 'apply', runId: this.runId, config });
+    if (this.runId > 0) {
+      channel.send({ type: 'apply', runId: this.runId, config });
+    } else {
+      this._status.set('idle');
+      this._ready.set(true);
+    }
   }
 
   private onMessage(message: FromWorker): void {
     if (message.type === 'status') {
       this._status.set(message.status);
       this._error.set(message.error ?? null);
-      this._started.set(true);
+      this._ready.set(true);
     } else {
       this._rows.set(message.rows);
       // A snapshot posted before the worker saw the latest watch belongs to another symbol.
@@ -173,11 +183,11 @@ export class ProducerService {
     this._watched.set(this.watchedSymbol === null ? null : { symbol: this.watchedSymbol, events: [], seconds: [] });
   }
 
-  /** Errors end the skeleton too, so the message is visible. The next Apply retries start(). */
+  /** Errors end the skeleton too, so the message is visible. The next Apply retries load(). */
   private fail(message: string): void {
-    this.starting = undefined;
+    this.loading = undefined;
     this._status.set('error');
     this._error.set(message);
-    this._started.set(true);
+    this._ready.set(true);
   }
 }

@@ -2,7 +2,7 @@
   <a class="text-hint self-start py-1" routerLink="/">← Dashboard</a>
   <h1>{{ label() }}</h1>
 
-  @if (producer.started()) {
+  @if (producer.ready()) {
     <div class="flex flex-wrap items-center gap-6">
       <app-status-badge [status]="producer.status()" [error]="producer.error()" />
       @if (row(); as row) {

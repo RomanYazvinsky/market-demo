@@ -12,9 +12,10 @@ describe('App shell', () => {
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
   });
 
-  test('U07 starts the producer after render, in the browser', async ({ producer, providers }) => {
+  test('U07 U44 loads the producer after render, in the browser, without starting a run', async ({ producer, providers }) => {
     await render(App, { providers });
-    expect(producer.start).toHaveBeenCalledTimes(1);
+    expect(producer.load).toHaveBeenCalledTimes(1);
+    expect(producer.start).not.toHaveBeenCalled();
   });
 
   test('U06 navigating between pages keeps a single producer', async ({ producer, providers }) => {
@@ -29,6 +30,6 @@ describe('App shell', () => {
     expect(await screen.findByRole('heading', { name: 'Producer settings' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
     expect(await screen.findByRole('heading', { name: 'Market dashboard' })).toBeInTheDocument();
-    expect(producer.start).toHaveBeenCalledTimes(1);
+    expect(producer.load).toHaveBeenCalledTimes(1);
   });
 });

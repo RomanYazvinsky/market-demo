@@ -15,6 +15,6 @@ export class App {
 
   constructor() {
     // Browser only, after the first render (and hydration): the worker never blocks bootstrap.
-    afterNextRender(() => void this.producer.start());
+    afterNextRender(() => void this.producer.load());
   }
 }

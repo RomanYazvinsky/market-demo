@@ -34,7 +34,8 @@ export interface ProducerConfig {
   batchIntervalMs: number;
 }
 
-export type ProducerStatus = 'initializing' | 'running' | 'paused' | 'error';
+/** `idle` exists only on the main thread: loaded, but no run started yet (the worker never sends it). */
+export type ProducerStatus = 'idle' | 'initializing' | 'running' | 'paused' | 'error';
 
 export interface MetricsRow {
   symbol: string;
