@@ -169,6 +169,40 @@ describe('ProducerService (started)', () => {
   });
 });
 
+describe('ProducerService (run time)', () => {
+  afterEach(() => vi.useRealTimers());
+
+  test('U46 counts the run time from status messages, without paused intervals', async ({ svc, workers }) => {
+    vi.useFakeTimers();
+    await loadAndStart(svc);
+    expect(svc.elapsedMs()).toBe(0);
+    workers[0].emit({ type: 'status', runId: 1, status: 'running' });
+    vi.advanceTimersByTime(2_000);
+    expect(svc.elapsedMs()).toBe(2_000);
+    vi.advanceTimersByTime(500);
+    workers[0].emit({ type: 'status', runId: 1, status: 'paused' });
+    vi.advanceTimersByTime(5_000);
+    expect(svc.elapsedMs()).toBe(2_500);
+    workers[0].emit({ type: 'status', runId: 1, status: 'running' });
+    vi.advanceTimersByTime(1_000);
+    expect(svc.elapsedMs()).toBe(3_500);
+  });
+
+  test('U46 apply resets the run time; an error stops it', async ({ svc, workers }) => {
+    vi.useFakeTimers();
+    await loadAndStart(svc);
+    workers[0].emit({ type: 'status', runId: 1, status: 'running' });
+    vi.advanceTimersByTime(3_000);
+    svc.apply(DEFAULT_SETTINGS);
+    expect(svc.elapsedMs()).toBe(0);
+    workers[0].emit({ type: 'status', runId: 2, status: 'running' });
+    vi.advanceTimersByTime(1_000);
+    workers[0].emit({ type: 'status', runId: 2, status: 'error', error: 'boom' });
+    vi.advanceTimersByTime(5_000);
+    expect(svc.elapsedMs()).toBe(1_000);
+  });
+});
+
 describe('ProducerService (watch)', () => {
   test('U31 watch sends the symbol to the worker', async ({ svc, workers }) => {
     await loadAndStart(svc);

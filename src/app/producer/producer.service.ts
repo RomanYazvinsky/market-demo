@@ -54,6 +54,7 @@ export class ProducerService {
   private readonly _settings = signal<ProducerSettings>(DEFAULT_SETTINGS);
   private readonly _ready = signal(false);
   private readonly _watched = signal<WatchedEvents | null>(null);
+  private readonly _elapsedMs = signal(0);
   private readonly _names = signal<ReadonlyMap<string, string>>(new Map());
 
   readonly status = this._status.asReadonly();
@@ -64,6 +65,8 @@ export class ProducerService {
   readonly ready = this._ready.asReadonly();
   /** Latest events of the symbol passed to watch(); empty until the worker reports them. */
   readonly watched = this._watched.asReadonly();
+  /** Generating time of the current run, paused intervals excluded; ticks once a second while running. */
+  readonly elapsedMs = this._elapsedMs.asReadonly();
   /** Company name per ticker, empty until the instrument list is loaded. */
   readonly names = this._names.asReadonly();
 
@@ -73,10 +76,16 @@ export class ProducerService {
   private watchedSymbol: string | null = null;
   private loading?: Promise<void>;
   private destroyed = false;
+  /** Run time before the current running interval. */
+  private elapsedBeforeMs = 0;
+  /** Date.now() when the worker last reported `running`; null while not running. */
+  private runningSinceMs: number | null = null;
+  private clockTimer?: ReturnType<typeof setInterval>;
 
   constructor() {
     this.destroyRef.onDestroy(() => {
       this.destroyed = true;
+      clearInterval(this.clockTimer);
       this.channel?.terminate();
     });
   }
@@ -97,6 +106,9 @@ export class ProducerService {
     const config = this.symbols ? toProducerConfig(settings, this.symbols) : undefined;
     if (config) this._rows.set(config.symbols.map(emptyRow));
     this.clearWatchedEvents();
+    this.stopClock();
+    this.elapsedBeforeMs = 0;
+    this.tickClock();
     this._status.set('initializing');
     this._error.set(null);
     if (config && this.channel) {
@@ -171,6 +183,8 @@ export class ProducerService {
     if (message.type === 'status') {
       this._status.set(message.status);
       this._error.set(message.error ?? null);
+      if (message.status === 'running') this.startClock();
+      else this.stopClock();
       this._ready.set(true);
     } else {
       this._rows.set(message.rows);
@@ -183,8 +197,27 @@ export class ProducerService {
     this._watched.set(this.watchedSymbol === null ? null : { symbol: this.watchedSymbol, events: [], seconds: [] });
   }
 
+  private startClock(): void {
+    if (this.runningSinceMs !== null) return;
+    this.runningSinceMs = Date.now();
+    this.clockTimer = setInterval(() => this.tickClock(), 1000);
+  }
+
+  private stopClock(): void {
+    if (this.runningSinceMs === null) return;
+    this.elapsedBeforeMs += Date.now() - this.runningSinceMs;
+    this.runningSinceMs = null;
+    clearInterval(this.clockTimer);
+    this.tickClock();
+  }
+
+  private tickClock(): void {
+    this._elapsedMs.set(this.elapsedBeforeMs + (this.runningSinceMs === null ? 0 : Date.now() - this.runningSinceMs));
+  }
+
   /** Errors end the skeleton too, so the message is visible. The next Apply retries load(). */
   private fail(message: string): void {
+    this.stopClock();
     this.loading = undefined;
     this._status.set('error');
     this._error.set(message);
