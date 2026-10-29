@@ -2,18 +2,19 @@ import { PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { test as base } from 'vitest';
 import { FakeWorker } from '../../testing/producer-fixtures';
-import { INSTRUMENT_SYMBOLS_LOADER, PRODUCER_WORKER_LOADER, ProducerService } from './producer.service';
+import { INSTRUMENT_SYMBOLS_LOADER, PRODUCER_WORKER_LOADER, ProducerService, type Instrument } from './producer.service';
 import { DEFAULT_SETTINGS, emptyRow, type MetricsRow, type TickerEvent } from './protocol';
 import { toProducerConfig } from './symbols';
 
 const SYMBOLS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META'];
+const INSTRUMENTS = SYMBOLS.map((symbol) => ({ symbol, name: `${symbol} Inc.` }));
 const configFor = (settings: typeof DEFAULT_SETTINGS) => toProducerConfig(settings, SYMBOLS);
 
 const test = base.extend<{
   platform: string;
   workers: FakeWorker[];
   loader: () => Promise<Worker>;
-  symbolsLoader: () => Promise<readonly string[]>;
+  symbolsLoader: () => Promise<readonly Instrument[]>;
   svc: ProducerService;
 }>({
   platform: 'browser',
@@ -24,7 +25,7 @@ const test = base.extend<{
       workers.push(worker);
       return worker as unknown as Worker;
     }),
-  symbolsLoader: async ({}, use) => use(async () => SYMBOLS),
+  symbolsLoader: async ({}, use) => use(async () => INSTRUMENTS),
   svc: async ({ platform, loader, symbolsLoader }, use) => {
     TestBed.configureTestingModule({
       providers: [
@@ -57,6 +58,15 @@ describe('ProducerService', () => {
     expect(workers).toHaveLength(1);
     expect(workers[0].sent).toEqual([{ type: 'apply', runId: 1, config: configFor(DEFAULT_SETTINGS) }]);
     expect(svc.rows()).toEqual(rows(5));
+  });
+});
+
+describe('ProducerService (names)', () => {
+  test('U43 exposes the instrument names once the list is loaded', async ({ svc }) => {
+    expect(svc.names().size).toBe(0);
+    await svc.start();
+    expect(svc.names().get('MSFT')).toBe('MSFT Inc.');
+    expect(svc.names().size).toBe(SYMBOLS.length);
   });
 });
 
@@ -217,7 +227,7 @@ describe('ProducerService (recovery after a failed start)', () => {
   test.scoped({
     symbolsLoader: async ({}, use) => {
       let calls = 0;
-      await use(() => (calls++ === 0 ? Promise.reject(new Error('HTTP 503')) : Promise.resolve(SYMBOLS)));
+      await use(() => (calls++ === 0 ? Promise.reject(new Error('HTTP 503')) : Promise.resolve(INSTRUMENTS)));
     },
   });
   test('U12 apply after a failed start retries the start and applies the new settings', async ({ svc, workers }) => {

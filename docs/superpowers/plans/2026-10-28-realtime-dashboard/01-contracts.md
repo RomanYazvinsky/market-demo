@@ -14,9 +14,9 @@ Every test name starts with the ID(s) it proves; `grep -rn "<ID>" src` lists the
 
 | ID | Requirement | Src | Test |
 |---|---|---|---|
-| C01 | The instrument list is a JSON array of ≥ 500 unique tickers, enough for the maximum instrument count | S | `symbols.spec.ts` › `C01 is an array of enough unique tickers for the largest run` |
-| C02 | Every entry is ticker-shaped (`AAPL`, `BRK.B`) | S | `C02 contains only ticker-shaped strings` |
-| C03 | The list is real S&P 500 data | S | `C03 includes well-known constituents` |
+| C01 | The instrument list is a JSON array of ≥ 500 entries `{ symbol, name }` with unique tickers, enough for the maximum instrument count | S | `symbols.spec.ts` › `C01 is an array of enough unique tickers for the largest run` |
+| C02 | Every entry has a ticker-shaped symbol (`AAPL`, `BRK.B`) and a company name | S | `C02 every entry is a ticker-shaped symbol with a company name` |
+| C03 | The list is real S&P 500 data (names from Wikipedia's "Security" column) | S | `C03 includes well-known constituents with their names` |
 | C04 | `toProducerConfig` slices the list to `instrumentCount` and carries batch size and interval unchanged | S | `C04 slices the list to instrumentCount and keeps the rest` |
 | C05 | The config's `symbols` is a fresh array (safe to post to the worker) | S | `C05 returns a fresh array` |
 | C06 | Shared contracts (`protocol.ts`, `wasm-api.ts`, `wasm_exec.d.ts`) compile and are the only cross-module types | C | — *Enforced by types:* `pnpm typecheck`; module ownership rules in `00-overview.md`. |

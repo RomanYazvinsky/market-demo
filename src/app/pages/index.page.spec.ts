@@ -106,6 +106,17 @@ describe('DashboardPage', () => {
     expect(bodyRows()[0]).toHaveTextContent('No instruments match "zz"');
   });
 
+  test('U43 shows "full name (ticker)" and searches and sorts by it', async ({ producer, providers }) => {
+    producer.names.set(new Map([['ALFA', 'Zulu Corp'], ['GAMA', 'Alpha Inc.']]));
+    producer.rows.set([ALFA, emptyRow('BETA'), GAMA]);
+    await render(DashboardPage, { providers });
+    expect(symbols()).toEqual(['Zulu Corp (ALFA)', 'BETA', 'Alpha Inc. (GAMA)']);
+    await userEvent.click(header('Symbol'));
+    expect(symbols()).toEqual(['Alpha Inc. (GAMA)', 'BETA', 'Zulu Corp (ALFA)']);
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search symbol' }), 'zulu');
+    expect(symbols()).toEqual(['Zulu Corp (ALFA)']);
+  });
+
   test('U36 the symbol cell links to its instrument page', async ({ producer, providers }) => {
     producer.rows.set([ALFA]);
     await render(DashboardPage, { providers });

@@ -7,9 +7,9 @@ import { readFileSync } from 'node:fs';
 import { SETTINGS_LIMITS } from './src/app/producer/protocol';
 
 // Every instrument of the largest possible run gets a prerendered page, so deep links work on static hosting.
-const instrumentRoutes = (JSON.parse(readFileSync('public/resources/sp500.json', 'utf8')) as string[])
+const instrumentRoutes = (JSON.parse(readFileSync('public/resources/sp500.json', 'utf8')) as Array<{ symbol: string }>)
   .slice(0, SETTINGS_LIMITS.instrumentCount.max)
-  .map((symbol) => `/instrument/${symbol}`);
+  .map((instrument) => `/instrument/${instrument.symbol}`);
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({

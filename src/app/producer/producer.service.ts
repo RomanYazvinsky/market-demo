@@ -23,12 +23,18 @@ export const PRODUCER_WORKER_LOADER = new InjectionToken<() => Promise<Worker>>(
   factory: () => () => import('./producer.worker?worker').then((workerModule) => new workerModule.default()),
 });
 
+/** One entry of public/resources/sp500.json. */
+export interface Instrument {
+  symbol: string;
+  name: string;
+}
+
 /** Loads the instrument list. Default: HttpClient GET environment.symbolsUrl. */
-export const INSTRUMENT_SYMBOLS_LOADER = new InjectionToken<() => Promise<readonly string[]>>('INSTRUMENT_SYMBOLS_LOADER', {
+export const INSTRUMENT_SYMBOLS_LOADER = new InjectionToken<() => Promise<readonly Instrument[]>>('INSTRUMENT_SYMBOLS_LOADER', {
   providedIn: 'root',
   factory: () => {
     const http = inject(HttpClient);
-    return () => firstValueFrom(http.get<string[]>(environment.symbolsUrl));
+    return () => firstValueFrom(http.get<Instrument[]>(environment.symbolsUrl));
   },
 });
 
@@ -48,6 +54,7 @@ export class ProducerService {
   private readonly _settings = signal<ProducerSettings>(DEFAULT_SETTINGS);
   private readonly _started = signal(false);
   private readonly _watched = signal<WatchedEvents | null>(null);
+  private readonly _names = signal<ReadonlyMap<string, string>>(new Map());
 
   readonly status = this._status.asReadonly();
   readonly error = this._error.asReadonly();
@@ -57,6 +64,8 @@ export class ProducerService {
   readonly started = this._started.asReadonly();
   /** Latest events of the symbol passed to watch(); empty until the worker reports them. */
   readonly watched = this._watched.asReadonly();
+  /** Company name per ticker, empty until the instrument list is loaded. */
+  readonly names = this._names.asReadonly();
 
   private channel?: RxWorker<ToWorker, FromWorker>;
   private symbols?: readonly string[];
@@ -123,7 +132,8 @@ export class ProducerService {
       return;
     }
 
-    this.symbols = symbols.value;
+    this.symbols = symbols.value.map((instrument) => instrument.symbol);
+    this._names.set(new Map(symbols.value.map((instrument) => [instrument.symbol, instrument.name])));
     const channel = rxWorker<ToWorker, FromWorker>(worker.value);
     channel.messages$
       .pipe(

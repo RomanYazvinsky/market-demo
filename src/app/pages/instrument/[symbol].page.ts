@@ -12,6 +12,7 @@ import { PriceChart, type ChartWindow } from '../../instrument/price-chart';
 import { EVENT_LOG_SIZE } from '../../producer/protocol';
 import { ProducerService } from '../../producer/producer.service';
 import { CentsPipe } from '../../shared/cents.pipe';
+import { instrumentLabel } from '../../shared/instrument-label';
 
 export const routeMeta: RouteMeta = { title: 'Instrument' };
 
@@ -28,6 +29,7 @@ export default class InstrumentPage {
   protected readonly symbol = toSignal(inject(ActivatedRoute).paramMap.pipe(map((params) => params.get('symbol') ?? '')), {
     requireSync: true,
   });
+  protected readonly label = computed(() => instrumentLabel(this.symbol(), this.producer.names()));
   protected readonly row = computed(() => this.producer.rows().find((row) => row.symbol === this.symbol()));
   protected readonly inRun = computed(() => this.row() !== undefined);
   private readonly watched = computed(() => {

@@ -1,6 +1,6 @@
 <section class="flex flex-col gap-4">
   <a class="text-hint self-start py-1" routerLink="/">← Dashboard</a>
-  <h1>{{ symbol() }}</h1>
+  <h1>{{ label() }}</h1>
 
   @if (producer.started()) {
     <div class="flex flex-wrap items-center gap-6">

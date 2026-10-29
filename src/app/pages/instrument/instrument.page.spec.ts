@@ -89,6 +89,12 @@ describe('InstrumentPage', () => {
     expect(updates.at(-1)).toMatchObject({ axis: 'time', xs: [5_000], xMin: -295_000 });
   });
 
+  test('U43 the heading shows "full name (ticker)"', async ({ producer, providers }) => {
+    producer.names.set(new Map([['AAPL', 'Apple Inc.']]));
+    await renderPage(providers);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Apple Inc. (AAPL)');
+  });
+
   test('U38 shows the current spread', async ({ producer, providers }) => {
     producer.rows.set([{ ...emptyRow('AAPL'), spreadCents: 4 }]);
     await renderPage(providers);

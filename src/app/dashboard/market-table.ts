@@ -8,6 +8,7 @@ import { RouterLink } from '@angular/router';
 import type { MetricsRow } from '../producer/protocol';
 import { BigIntPipe } from '../shared/bigint.pipe';
 import { CentsPipe } from '../shared/cents.pipe';
+import { instrumentLabel } from '../shared/instrument-label';
 
 const SORT_KEYS = {
   symbol: 'symbol',
@@ -29,17 +30,23 @@ type Column = keyof typeof SORT_KEYS;
 })
 export class MarketTable {
   readonly rows = input.required<MetricsRow[]>();
+  readonly names = input<ReadonlyMap<string, string>>(new Map());
   protected readonly columns = Object.keys(SORT_KEYS) as Column[];
   protected readonly query = signal('');
   protected readonly sort = signal<Sort>({ active: '', direction: '' });
   protected readonly trackBySymbol = (_: number, row: MetricsRow) => row.symbol;
 
+  protected readonly labeledRows = computed(() => {
+    const names = this.names();
+    return this.rows().map((row) => ({ ...row, label: instrumentLabel(row.symbol, names) }));
+  });
+
   protected readonly visibleRows = computed(() => {
-    const query = this.query().trim().toUpperCase();
-    const matching = query ? this.rows().filter((row) => row.symbol.includes(query)) : this.rows();
+    const query = this.query().trim().toLowerCase();
+    const matching = query ? this.labeledRows().filter((row) => row.label.toLowerCase().includes(query)) : this.labeledRows();
     const { active, direction } = this.sort();
     if (!direction) return matching;
-    const key = SORT_KEYS[active as Column];
+    const key = active === 'symbol' ? 'label' : SORT_KEYS[active as Column];
     const sign = direction === 'asc' ? 1 : -1;
     return [...matching].sort((left, right) => compareNullsLast(left[key], right[key], sign));
   });
