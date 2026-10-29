@@ -12,6 +12,7 @@ import {
   type ProducerSettings,
   type ProducerStatus,
   type ToWorker,
+  type WatchedEvents,
 } from './protocol';
 import { toProducerConfig } from './symbols';
 import { rxWorker, type RxWorker } from './worker-channel';
@@ -46,6 +47,7 @@ export class ProducerService {
   private readonly _rows = signal<MetricsRow[]>([]);
   private readonly _settings = signal<ProducerSettings>(DEFAULT_SETTINGS);
   private readonly _started = signal(false);
+  private readonly _watched = signal<WatchedEvents | null>(null);
 
   readonly status = this._status.asReadonly();
   readonly error = this._error.asReadonly();
@@ -53,10 +55,13 @@ export class ProducerService {
   readonly settings = this._settings.asReadonly();
   /** true once the first status from the current run arrived (drives skeletons). */
   readonly started = this._started.asReadonly();
+  /** Latest events of the symbol passed to watch(); empty until the worker reports them. */
+  readonly watched = this._watched.asReadonly();
 
   private channel?: RxWorker<ToWorker, FromWorker>;
   private symbols?: readonly string[];
   private runId = 1;
+  private watchedSymbol: string | null = null;
   private starting?: Promise<void>;
   private destroyed = false;
 
@@ -77,6 +82,7 @@ export class ProducerService {
     this._settings.set(settings);
     const config = this.symbols ? toProducerConfig(settings, this.symbols) : undefined;
     if (config) this._rows.set(config.symbols.map(emptyRow));
+    this.clearWatchedEvents();
     this._status.set('initializing');
     this._error.set(null);
     if (config && this.channel) {
@@ -86,6 +92,13 @@ export class ProducerService {
       // or a previous start/worker failed, in which case start() retries.
       void this.start();
     }
+  }
+
+  /** Selects the symbol whose events snapshots carry (an instrument page), or none. */
+  watch(symbol: string | null): void {
+    this.watchedSymbol = symbol;
+    this.clearWatchedEvents();
+    this.channel?.send({ type: 'watch', symbol });
   }
 
   pause(): void {
@@ -130,6 +143,7 @@ export class ProducerService {
 
     const config = toProducerConfig(this._settings(), this.symbols);
     this._rows.set(config.symbols.map(emptyRow));
+    if (this.watchedSymbol !== null) channel.send({ type: 'watch', symbol: this.watchedSymbol });
     channel.send({ type: 'apply', runId: this.runId, config });
   }
 
@@ -140,7 +154,13 @@ export class ProducerService {
       this._started.set(true);
     } else {
       this._rows.set(message.rows);
+      // A snapshot posted before the worker saw the latest watch belongs to another symbol.
+      if (message.watched && message.watched.symbol === this.watchedSymbol) this._watched.set(message.watched);
     }
+  }
+
+  private clearWatchedEvents(): void {
+    this._watched.set(this.watchedSymbol === null ? null : { symbol: this.watchedSymbol, events: [] });
   }
 
   /** Errors end the skeleton too, so the message is visible. The next Apply retries start(). */

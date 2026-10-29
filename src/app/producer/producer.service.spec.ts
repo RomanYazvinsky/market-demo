@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { test as base } from 'vitest';
 import { FakeWorker } from '../../testing/producer-fixtures';
 import { INSTRUMENT_SYMBOLS_LOADER, PRODUCER_WORKER_LOADER, ProducerService } from './producer.service';
-import { DEFAULT_SETTINGS, emptyRow, type MetricsRow } from './protocol';
+import { DEFAULT_SETTINGS, emptyRow, type MetricsRow, type TickerEvent } from './protocol';
 import { toProducerConfig } from './symbols';
 
 const SYMBOLS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META'];
@@ -36,6 +36,8 @@ const test = base.extend<{
     await use(TestBed.inject(ProducerService));
   },
 });
+
+const EVENT: TickerEvent = { sequence: 1, timeMs: 0, priceCents: 10200, quantity: 30, bidCents: 10196, askCents: 10200, bidQty: 600, askQty: 400 };
 
 const rows = (count: number, volume = 0n): MetricsRow[] =>
   SYMBOLS.slice(0, count).map((settings) => ({ ...emptyRow(settings), volume }));
@@ -132,6 +134,61 @@ describe('ProducerService (started)', () => {
     await svc.start();
     TestBed.resetTestingModule();
     expect(workers[0].terminated).toBe(true);
+  });
+});
+
+describe('ProducerService (watch)', () => {
+  test('U31 watch sends the symbol to the worker', async ({ svc, workers }) => {
+    await svc.start();
+    svc.watch('MSFT');
+    svc.watch(null);
+    expect(workers[0].sent.slice(-2)).toEqual([{ type: 'watch', symbol: 'MSFT' }, { type: 'watch', symbol: null }]);
+  });
+
+  test('U31 a watch before the worker is up is sent before the first apply', async ({ svc, workers }) => {
+    svc.watch('MSFT');
+    await svc.start();
+    expect(workers[0].sent).toEqual([{ type: 'watch', symbol: 'MSFT' }, { type: 'apply', runId: 1, config: configFor(DEFAULT_SETTINGS) }]);
+  });
+
+  test('U31 a replacement worker gets the watch before its apply', async ({ svc, workers }) => {
+    await svc.start();
+    svc.watch('MSFT');
+    workers[0].crash('boom');
+    svc.apply(DEFAULT_SETTINGS);
+    await svc.start();
+    expect(workers[1].sent.map((message) => (message as { type: string }).type)).toEqual(['watch', 'apply']);
+  });
+
+  test('U31 watch sets an empty log for the new symbol at once', ({ svc }) => {
+    expect(svc.watched()).toBeNull();
+    svc.watch('MSFT');
+    expect(svc.watched()).toEqual({ symbol: 'MSFT', events: [] });
+    svc.watch(null);
+    expect(svc.watched()).toBeNull();
+  });
+
+  test('U31 applies the watched events of snapshots', async ({ svc, workers }) => {
+    await svc.start();
+    svc.watch('MSFT');
+    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT] } });
+    expect(svc.watched()).toEqual({ symbol: 'MSFT', events: [EVENT] });
+  });
+
+  test('U32 ignores events of a symbol that is no longer watched', async ({ svc, workers }) => {
+    await svc.start();
+    svc.watch('AAPL');
+    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT] } });
+    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: null });
+    expect(svc.watched()).toEqual({ symbol: 'AAPL', events: [] });
+  });
+
+  test('U32 apply clears the events and keeps the symbol', async ({ svc, workers }) => {
+    await svc.start();
+    svc.watch('MSFT');
+    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT] } });
+    svc.apply(DEFAULT_SETTINGS);
+    expect(svc.watched()).toEqual({ symbol: 'MSFT', events: [] });
   });
 });
 

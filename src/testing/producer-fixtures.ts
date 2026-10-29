@@ -1,7 +1,7 @@
 import { type Provider, signal } from '@angular/core';
 import { test as base } from 'vitest';
 import { ProducerService } from '../app/producer/producer.service';
-import { DEFAULT_SETTINGS, type MetricsRow, type ProducerStatus } from '../app/producer/protocol';
+import { DEFAULT_SETTINGS, type MetricsRow, type ProducerStatus, type WatchedEvents } from '../app/producer/protocol';
 
 export function createProducerStub() {
   return {
@@ -10,10 +10,12 @@ export function createProducerStub() {
     rows: signal<MetricsRow[]>([]),
     settings: signal(DEFAULT_SETTINGS),
     started: signal(true),
+    watched: signal<WatchedEvents | null>(null),
     start: vi.fn(async () => {}),
     apply: vi.fn(),
     pause: vi.fn(),
     resume: vi.fn(),
+    watch: vi.fn(),
   };
 }
 export type ProducerStub = ReturnType<typeof createProducerStub>;
