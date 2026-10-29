@@ -97,7 +97,7 @@ Source column: **T** = TASK.md §3, **S** = design spec / author decision, **C**
 | W17 | `init` rejects a `dst` that is not an Int32Array or is shorter than updatesPerBatch × 7 | C | — | `W17 rejects an output buffer that is too small or not an Int32Array` |
 | W18 | A rejected `init` keeps the previous run and its buffer | C | — | `W18 a rejected init keeps the previous run and its buffer` |
 | W19 | `nextBatch` writes only inside the bound view (respects byteOffset, no overrun) | C | — | `W02 W19 writes exactly updatesPerBatch updates`, `W19 respects the byteOffset of a subarray view` |
-| W20 | Invalid argument types never crash the Go runtime | C | — | `W20 survives invalid argument types` |
+| W20 | Invalid argument types never crash the Go runtime; `init` takes `(config: { seed, instrumentCount, updatesPerBatch }, dst)` and names a missing or non-number field | C | — | `W20 survives invalid argument types`, `W20 rejects a config with a missing field` |
 | W21 | `nextBatch` before any successful `init` is a no-op | C | — | `W21 nextBatch before init is a no-op` |
 | W23 | A taker fills `min(budget/price, shares at the level)`; the level loses exactly the filled shares | S | `TestW23_TakerFillsWithinLevel`, `TestW23_TakerFillCappedByLevel` | — |
 | W24 | A level moves away only after it was exhausted (ask up only if askQty hit 0, bid down only if bidQty hit 0) | S | `TestW24_RefreshMovesOnlyExhaustedLevel`, `TestW24_RefreshNoopWhenLevelsHaveShares`, `TestW24_QuotesMoveAwayOnlyAfterExhaustion` | — |

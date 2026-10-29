@@ -76,7 +76,7 @@ export class ProducerController {
     if (runId !== this.runId) return;
 
     const ints = new Int32Array(config.updatesPerBatch * FIELDS_PER_UPDATE);
-    const error = wasm.init(this.deps.seed(), config.symbols.length, config.updatesPerBatch, ints);
+    const error = wasm.init({ seed: this.deps.seed(), instrumentCount: config.symbols.length, updatesPerBatch: config.updatesPerBatch }, ints);
     if (error !== null) {
       this.fail(error);
       return;

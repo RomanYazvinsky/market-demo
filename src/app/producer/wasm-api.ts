@@ -27,16 +27,24 @@
  * batch); reading Go's linear memory from JS by pointer (depends on wasm_exec.js internals,
  * the view detaches whenever Go's memory grows).
  */
+/** The run settings `init` takes; every field must be a number. */
+export interface ProducerInit {
+  seed: number;
+  instrumentCount: number;
+  updatesPerBatch: number;
+}
+
 export interface WasmProducer {
   /**
    * Starts a new run: seeds the PRNG, creates per-instrument state and binds `dst` as the
    * output buffer for every following `nextBatch()`.
    * Returns null on success, otherwise a readable error:
+   *  - `config` not an object, or a field missing or not a number,
    *  - instrumentCount outside 1–50, updatesPerBatch outside 1–1000,
    *  - `dst` not an Int32Array, or shorter than updatesPerBatch * 7.
    * On error the previous run (state and bound buffer) is left untouched.
    */
-  init(seed: number, instrumentCount: number, updatesPerBatch: number, dst: Int32Array): string | null;
+  init(config: ProducerInit, dst: Int32Array): string | null;
 
   /**
    * Overwrites the first updatesPerBatch * 7 elements of the bound Int32Array with a new batch.

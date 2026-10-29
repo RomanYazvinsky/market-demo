@@ -73,7 +73,7 @@ func main() {
 	select {}
 }
 
-// initRun implements producer.init(seed, instrumentCount, updatesPerBatch, dst).
+// initRun implements producer.init({ seed, instrumentCount, updatesPerBatch }, dst).
 // It returns null on success, otherwise a readable error string.
 func initRun(_ js.Value, args []js.Value) (result any) {
 	// Bad arguments (wrong types, missing args) make syscall/js panic; turn that into an
@@ -99,6 +99,15 @@ func initRun(_ js.Value, args []js.Value) (result any) {
 	return nil
 }
 
+// numberField reads config[name], which must be a number.
+func numberField(config js.Value, name string) (int, error) {
+	field := config.Get(name)
+	if field.Type() != js.TypeNumber {
+		return 0, fmt.Errorf("producer.init: config.%s must be a number, got %s", name, field.Type())
+	}
+	return field.Int(), nil
+}
+
 // initArgs are the arguments of producer.init after validation.
 type initArgs struct {
 	seed            uint64
@@ -107,19 +116,30 @@ type initArgs struct {
 	dst             js.Value
 }
 
-// parseInitArgs checks the argument count, the batch size and the output buffer. The instrument
-// count is checked by generator.New. Arguments of the wrong JS type make syscall/js panic,
-// which initRun recovers.
+// parseInitArgs reads the config object and checks the batch size and the output buffer. The
+// instrument count is checked by generator.New. Anything else syscall/js cannot read makes it
+// panic, which initRun recovers.
 func parseInitArgs(args []js.Value) (initArgs, error) {
-	if len(args) != 4 {
-		return initArgs{}, fmt.Errorf("producer.init expects 4 arguments, got %d", len(args))
+	if len(args) != 2 {
+		return initArgs{}, fmt.Errorf("producer.init expects (config, dst), got %d arguments", len(args))
 	}
-	parsed := initArgs{
-		seed:            uint64(args[0].Int()),
-		instrumentCount: args[1].Int(),
-		updatesPerBatch: args[2].Int(),
-		dst:             args[3],
+	config := args[0]
+	if config.Type() != js.TypeObject {
+		return initArgs{}, fmt.Errorf("producer.init: config must be an object, got %s", config.Type())
 	}
+	seed, err := numberField(config, "seed")
+	if err != nil {
+		return initArgs{}, err
+	}
+	instrumentCount, err := numberField(config, "instrumentCount")
+	if err != nil {
+		return initArgs{}, err
+	}
+	updatesPerBatch, err := numberField(config, "updatesPerBatch")
+	if err != nil {
+		return initArgs{}, err
+	}
+	parsed := initArgs{seed: uint64(seed), instrumentCount: instrumentCount, updatesPerBatch: updatesPerBatch, dst: args[1]}
 	if err := generator.ValidateBatchSize(parsed.updatesPerBatch); err != nil {
 		return initArgs{}, err
 	}

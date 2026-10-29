@@ -1,4 +1,4 @@
-import type { WasmProducer } from '../wasm-api';
+import type { ProducerInit, WasmProducer } from '../wasm-api';
 
 /** Writes `updatesPerBatch` updates of qty 1, round-robin over instruments. */
 export class FakeWasm implements WasmProducer {
@@ -9,11 +9,11 @@ export class FakeWasm implements WasmProducer {
   private updatesPerBatch = 0;
   private dst: Int32Array = new Int32Array(0);
 
-  init(seed: number, instrumentCount: number, updatesPerBatch: number, dst: Int32Array) {
-    this.inits.push([seed, instrumentCount, updatesPerBatch, dst.length]);
+  init(config: ProducerInit, dst: Int32Array) {
+    this.inits.push([config.seed, config.instrumentCount, config.updatesPerBatch, dst.length]);
     if (this.initResult === null) {
-      this.instrumentCount = instrumentCount;
-      this.updatesPerBatch = updatesPerBatch;
+      this.instrumentCount = config.instrumentCount;
+      this.updatesPerBatch = config.updatesPerBatch;
       this.dst = dst;
     }
     return this.initResult;

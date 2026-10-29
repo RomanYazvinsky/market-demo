@@ -27,7 +27,7 @@ An [AnalogJS](https://analogjs.org) (Angular 22) app with a live market dashboar
 Angular (main thread)                    Web Worker                         Go Wasm
 ---------------------                    ----------                         -------
 ProducerService (root, one per app)      ProducerController                 generator + one-level order books
-  rxWorker()  ── apply/pause/resume ──>    run lifecycle, timers   ── init(seed, n, k, Int32Array) ──>
+  rxWorker()  ── apply/pause/resume ──>    run lifecycle, timers   ── init(config, Int32Array) ──>
   signals: status, rows, settings,         MetricsStore (BigInt),  ── nextBatch() ──> fills Int32Array
            watched                         EventLog (last 100 per instrument)
   drops messages of older runIds <── snapshot every 1 s (+ watched symbol's events) ──
