@@ -5,21 +5,21 @@ An [AnalogJS](https://analogjs.org) (Angular 22) app with a live market dashboar
 ## Prerequisites
 
 - Node ≥ 22.22.3 and pnpm
-- Go 1.27.1 (builds the Wasm producer)
+- Go 1.27.1 to build the Wasm producer (optional: without Go, a prebuilt module from `wasm/prebuilt/` is used; `pnpm test:go` still needs Go)
 
 ## Commands
 
 | Command | What it does |
 |---|---|
 | `pnpm install` | Install dependencies (see *Blocked dependency builds* below) |
-| `pnpm dev` | Dev server at http://localhost:5173 |
+| `pnpm dev` | Builds `public/producer.wasm`, then the dev server at http://localhost:5173 |
 | `pnpm build` | Builds `public/producer.wasm`, then the app; prerendered static output in `dist/analog/public` |
 | `pnpm test -- --run` | Builds the Wasm, then runs all Vitest specs once (`pnpm test` watches) |
 | `pnpm test:go` | Go unit tests of the market model (`wasm/generator`) |
 | `pnpm typecheck` | TypeScript check of app and specs |
-| `pnpm build:wasm` | Only rebuild `public/producer.wasm` and copy Go's `wasm_exec.js` |
+| `pnpm build:wasm` | Only rebuild `public/producer.wasm` and copy Go's `wasm_exec.js` (or copy both from `wasm/prebuilt/` when Go is not installed) |
 
-`public/producer.wasm` and `src/app/producer/wasm_exec.js` are build outputs. They are gitignored and recreated by `build`/`test`.
+`public/producer.wasm` and `src/app/producer/wasm_exec.js` are build outputs. They are gitignored and recreated by `dev`/`build`/`test`. `wasm/prebuilt/` keeps a committed copy of both (plus `GO_VERSION`): every build with Go refreshes it, and the build is reproducible (`-trimpath -buildvcs=false`), so it changes only with the Go sources or the Go version. Commit it together with Go changes.
 
 ## Architecture
 

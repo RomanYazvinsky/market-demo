@@ -14,6 +14,7 @@
     "test": "vitest",
     "preview": "node dist/analog/server/index.mjs",
     "build:wasm": "sh scripts/build-wasm.sh",
+    "predev": "pnpm build:wasm",
     "prebuild": "pnpm build:wasm",
     "pretest": "pnpm build:wasm",
     "test:go": "cd wasm && go test ./...",
