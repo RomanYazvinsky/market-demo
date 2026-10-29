@@ -2,7 +2,7 @@
  * JS surface registered by wasm/main.go on `globalThis.producer`.
  *
  * ## Data layout
- * One update is 7 int32 values (FIELDS_PER_UPDATE; offsets in `F`):
+ * One update is 7 int32 values (FIELDS_PER_UPDATE; offsets in `FIELD`):
  *   [instrumentIndex, priceCents, tradeQuantity, bidCents, askCents, bidQuantity, askQuantity]
  * A batch of k updates occupies the first k * 7 elements of the run's Int32Array.
  *

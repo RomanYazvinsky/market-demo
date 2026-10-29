@@ -11,7 +11,7 @@
 //
 //	[instrumentIndex, priceCents, tradeQuantity, bidCents, askCents, bidQuantity, askQuantity]
 //
-// A batch of k updates occupies the first k * 7 elements of the run's Int32Array.
+// A batch of updatesPerBatch updates occupies the first updatesPerBatch * 7 elements of the run's Int32Array.
 //
 // # Memory model: how a batch gets from Go into the worker
 //
@@ -28,9 +28,9 @@
 //     batch, a subarray dst works and the copy never writes past the batch. The view is
 //     created once per init, not per batch, because dst and the batch size are fixed for the
 //     run; that keeps nextBatch free of JS allocations. JS only ever sees the Int32Array.
-//  3. nextBatch generates the updates into ups (a reused Go []MarketUpdate), encodes them
-//     into buf (a reused Go []byte) as little-endian int32, and performs exactly one
-//     CopyBytesToJS(out, buf). After it returns, the worker reads the values through its
+//  3. nextBatch generates the updates into updates (a reused Go []MarketUpdate), encodes them
+//     into encoded (a reused Go []byte) as little-endian int32, and performs exactly one
+//     CopyBytesToJS(batchView, encoded). After it returns, the worker reads the values through its
 //     Int32Array. Per batch: one bulk copy (max 1000 * 28 bytes = 28 KB), zero allocations
 //     on either side.
 //  4. Byte order: Encode writes little-endian, the byte order Wasm itself uses. The
@@ -53,16 +53,16 @@ import (
 // Run state. It is replaced only by a fully successful init, so a rejected init leaves the
 // previous run (generator and bound buffer) untouched.
 var (
-	// gen is the current run's generator; nil until the first successful init.
-	gen *generator.Generator
-	// ups holds one batch of generated updates (len updatesPerBatch), reused every batch.
-	ups []generator.MarketUpdate
-	// buf holds ups encoded as little-endian int32 (len updatesPerBatch * 28), reused every
-	// batch; it is the source of the single CopyBytesToJS per batch.
-	buf []byte
-	// out is the Uint8Array byte view over the bound Int32Array's batch bytes
+	// runGenerator is the current run's generator; nil until the first successful init.
+	runGenerator *generator.Generator
+	// updates holds one batch of generated updates (len updatesPerBatch), reused every batch.
+	updates []generator.MarketUpdate
+	// encoded holds updates encoded as little-endian int32 (len updatesPerBatch * 28), reused
+	// every batch; it is the source of the single CopyBytesToJS per batch.
+	encoded []byte
+	// batchView is the Uint8Array byte view over the bound Int32Array's batch bytes
 	// (dst.buffer, from dst.byteOffset, updatesPerBatch * 28 bytes); the copy destination.
-	out js.Value
+	batchView js.Value
 )
 
 func main() {
@@ -79,41 +79,41 @@ func initRun(_ js.Value, args []js.Value) (result any) {
 	// Bad arguments (wrong types, missing args) make syscall/js panic; turn that into an
 	// error string instead of killing the Go runtime.
 	defer func() {
-		if r := recover(); r != nil {
-			result = fmt.Sprint("producer.init: invalid arguments: ", r)
+		if recovered := recover(); recovered != nil {
+			result = fmt.Sprint("producer.init: invalid arguments: ", recovered)
 		}
 	}()
 	if len(args) != 4 {
 		return fmt.Sprintf("producer.init expects 4 arguments, got %d", len(args))
 	}
-	seed, count, batch, dst := args[0].Int(), args[1].Int(), args[2].Int(), args[3]
+	seed, instrumentCount, updatesPerBatch, dst := args[0].Int(), args[1].Int(), args[2].Int(), args[3]
 
-	if err := generator.ValidateBatchSize(batch); err != nil {
+	if err := generator.ValidateBatchSize(updatesPerBatch); err != nil {
 		return err.Error()
 	}
-	minLen := batch * generator.FieldsPerUpdate
-	if !dst.InstanceOf(js.Global().Get("Int32Array")) || dst.Get("length").Int() < minLen {
-		return fmt.Sprintf("dst must be an Int32Array of at least %d elements", minLen)
+	minLength := updatesPerBatch * generator.FieldsPerUpdate
+	if !dst.InstanceOf(js.Global().Get("Int32Array")) || dst.Get("length").Int() < minLength {
+		return fmt.Sprintf("dst must be an Int32Array of at least %d elements", minLength)
 	}
-	g, err := generator.New(uint64(seed), count, generator.DefaultModelConfig())
+	created, err := generator.New(uint64(seed), instrumentCount, generator.DefaultModelConfig())
 	if err != nil {
 		return err.Error()
 	}
 
-	gen = g
-	ups = make([]generator.MarketUpdate, batch)
-	buf = make([]byte, batch*generator.BytesPerUpdate)
-	out = js.Global().Get("Uint8Array").New(dst.Get("buffer"), dst.Get("byteOffset"), len(buf))
+	runGenerator = created
+	updates = make([]generator.MarketUpdate, updatesPerBatch)
+	encoded = make([]byte, updatesPerBatch*generator.BytesPerUpdate)
+	batchView = js.Global().Get("Uint8Array").New(dst.Get("buffer"), dst.Get("byteOffset"), len(encoded))
 	return nil
 }
 
 // nextBatch implements producer.nextBatch(): one batch into the bound Int32Array.
 func nextBatch(_ js.Value, _ []js.Value) any {
-	if gen == nil {
+	if runGenerator == nil {
 		return nil
 	}
-	gen.NextBatch(ups)
-	generator.Encode(buf, ups)
-	js.CopyBytesToJS(out, buf)
+	runGenerator.NextBatch(updates)
+	generator.Encode(encoded, updates)
+	js.CopyBytesToJS(batchView, encoded)
 	return nil
 }

@@ -28,11 +28,11 @@ export const pageTest = base.extend<{ producer: ProducerStub; providers: Provide
 export class FakeWorker {
   sent: unknown[] = [];
   terminated = false;
-  private listeners = new Map<string, Set<(e: Event) => void>>();
-  addEventListener(type: string, fn: (e: Event) => void) { (this.listeners.get(type) ?? this.listeners.set(type, new Set()).get(type)!).add(fn); }
-  removeEventListener(type: string, fn: (e: Event) => void) { this.listeners.get(type)?.delete(fn); }
-  postMessage(m: unknown) { this.sent.push(m); }
+  private listeners = new Map<string, Set<(event: Event) => void>>();
+  addEventListener(type: string, listener: (event: Event) => void) { (this.listeners.get(type) ?? this.listeners.set(type, new Set()).get(type)!).add(listener); }
+  removeEventListener(type: string, listener: (event: Event) => void) { this.listeners.get(type)?.delete(listener); }
+  postMessage(message: unknown) { this.sent.push(message); }
   terminate() { this.terminated = true; }
-  emit(data: unknown) { this.listeners.get('message')?.forEach((fn) => fn(new MessageEvent('message', { data }))); }
-  crash(message: string) { this.listeners.get('error')?.forEach((fn) => fn(new ErrorEvent('error', { message }))); }
+  emit(data: unknown) { this.listeners.get('message')?.forEach((listener) => listener(new MessageEvent('message', { data }))); }
+  crash(message: string) { this.listeners.get('error')?.forEach((listener) => listener(new ErrorEvent('error', { message }))); }
 }

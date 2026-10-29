@@ -61,8 +61,8 @@ export class ProducerController {
     let wasm: WasmProducer;
     try {
       wasm = await this.deps.wasm;
-    } catch (e) {
-      if (runId === this.runId) this.fail(errorText(e));
+    } catch (error) {
+      if (runId === this.runId) this.fail(errorText(error));
       return;
     }
     if (runId !== this.runId) return;
@@ -117,6 +117,6 @@ export class ProducerController {
   }
 }
 
-function errorText(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
+function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

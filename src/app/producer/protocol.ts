@@ -19,7 +19,7 @@ export const SETTINGS_LIMITS = {
 export const FIELDS_PER_UPDATE = 7;
 
 /** Field offsets inside one 7-int update. */
-export const F = {
+export const FIELD = {
   instrument: 0, price: 1, tradeQty: 2, bid: 3, ask: 4, bidQty: 5, askQty: 6,
 } as const;
 

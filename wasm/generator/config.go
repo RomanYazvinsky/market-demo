@@ -30,44 +30,44 @@ func DefaultModelConfig() ModelConfig {
 // Validate checks min <= max for each range, all values > 0, MinStartPriceCents >= 2
 // (so a 1¢ bid below a >= 2¢ ask exists), InitialSpreadBps <= MaxSpreadBps and
 // 0 <= ImproveChancePct <= 100.
-func (c ModelConfig) Validate() error {
+func (config ModelConfig) Validate() error {
 	ranges := []struct {
 		name     string
 		min, max int64
 	}{
-		{"StartPriceCents", c.MinStartPriceCents, c.MaxStartPriceCents},
-		{"OrderCents", c.MinOrderCents, c.MaxOrderCents},
-		{"DepthCents", c.MinDepthCents, c.MaxDepthCents},
+		{"StartPriceCents", config.MinStartPriceCents, config.MaxStartPriceCents},
+		{"OrderCents", config.MinOrderCents, config.MaxOrderCents},
+		{"DepthCents", config.MinDepthCents, config.MaxDepthCents},
 	}
-	for _, r := range ranges {
-		if r.min <= 0 {
-			return fmt.Errorf("Min%s must be > 0, got %d", r.name, r.min)
+	for _, valueRange := range ranges {
+		if valueRange.min <= 0 {
+			return fmt.Errorf("Min%s must be > 0, got %d", valueRange.name, valueRange.min)
 		}
-		if r.min > r.max {
-			return fmt.Errorf("Min%s (%d) must be <= Max%s (%d)", r.name, r.min, r.name, r.max)
+		if valueRange.min > valueRange.max {
+			return fmt.Errorf("Min%s (%d) must be <= Max%s (%d)", valueRange.name, valueRange.min, valueRange.name, valueRange.max)
 		}
 	}
-	if c.MinStartPriceCents < 2 {
-		return fmt.Errorf("MinStartPriceCents must be >= 2, got %d", c.MinStartPriceCents)
+	if config.MinStartPriceCents < 2 {
+		return fmt.Errorf("MinStartPriceCents must be >= 2, got %d", config.MinStartPriceCents)
 	}
 	positive := []struct {
-		name string
-		v    int64
+		name  string
+		value int64
 	}{
-		{"LevelGapBps", c.LevelGapBps},
-		{"InitialSpreadBps", c.InitialSpreadBps},
-		{"MaxSpreadBps", c.MaxSpreadBps},
+		{"LevelGapBps", config.LevelGapBps},
+		{"InitialSpreadBps", config.InitialSpreadBps},
+		{"MaxSpreadBps", config.MaxSpreadBps},
 	}
-	for _, p := range positive {
-		if p.v <= 0 {
-			return fmt.Errorf("%s must be > 0, got %d", p.name, p.v)
+	for _, field := range positive {
+		if field.value <= 0 {
+			return fmt.Errorf("%s must be > 0, got %d", field.name, field.value)
 		}
 	}
-	if c.InitialSpreadBps > c.MaxSpreadBps {
-		return fmt.Errorf("InitialSpreadBps (%d) must be <= MaxSpreadBps (%d)", c.InitialSpreadBps, c.MaxSpreadBps)
+	if config.InitialSpreadBps > config.MaxSpreadBps {
+		return fmt.Errorf("InitialSpreadBps (%d) must be <= MaxSpreadBps (%d)", config.InitialSpreadBps, config.MaxSpreadBps)
 	}
-	if c.ImproveChancePct < 0 || c.ImproveChancePct > 100 {
-		return fmt.Errorf("ImproveChancePct must be 0-100, got %d", c.ImproveChancePct)
+	if config.ImproveChancePct < 0 || config.ImproveChancePct > 100 {
+		return fmt.Errorf("ImproveChancePct must be 0-100, got %d", config.ImproveChancePct)
 	}
 	return nil
 }

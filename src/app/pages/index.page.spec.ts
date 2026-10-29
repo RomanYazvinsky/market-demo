@@ -7,13 +7,13 @@ import DashboardPage from './index.page';
 const ALFA = { symbol: 'ALFA', lastPriceCents: 10200, spreadCents: 4, volume: 40n, vwapCents: 10150, imbalance: 0.2 };
 
 const bodyRows = () => within(screen.getByRole('table', { name: 'Instruments' })).getAllByRole('row').slice(1);
-const cellsOf = (row: HTMLElement) => within(row).getAllByRole('cell').map((c) => c.textContent!.trim());
+const cellsOf = (row: HTMLElement) => within(row).getAllByRole('cell').map((cell) => cell.textContent!.trim());
 
 describe('DashboardPage', () => {
   test('U18 U19 renders one formatted row per instrument', async ({ producer, providers }) => {
     producer.rows.set([ALFA, emptyRow('BETA')]);
     await render(DashboardPage, { providers });
-    expect(screen.getAllByRole('columnheader').map((h) => h.textContent!.trim()))
+    expect(screen.getAllByRole('columnheader').map((header) => header.textContent!.trim()))
       .toEqual(['Symbol', 'Last price', 'Spread', 'Volume', 'VWAP', 'Imbalance']);
     expect(bodyRows().map(cellsOf)).toEqual([
       ['ALFA', '$102.00', '$0.04', '40', '$101.50', '0.20'],

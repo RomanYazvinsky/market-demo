@@ -1,4 +1,4 @@
-import { F, FIELDS_PER_UPDATE, emptyRow, type MetricsRow } from './protocol';
+import { FIELD, FIELDS_PER_UPDATE, emptyRow, type MetricsRow } from './protocol';
 
 export function spreadCents(bidCents: number, askCents: number): number {
   return askCents - bidCents;
@@ -26,45 +26,45 @@ export class MetricsStore {
   private readonly notional: bigint[];
 
   constructor(private readonly symbols: string[]) {
-    const n = symbols.length;
-    this.hasData = new Uint8Array(n);
-    this.last = new Int32Array(n);
-    this.bid = new Int32Array(n);
-    this.ask = new Int32Array(n);
-    this.bidQty = new Int32Array(n);
-    this.askQty = new Int32Array(n);
-    this.volume = new Array<bigint>(n).fill(0n);
-    this.notional = new Array<bigint>(n).fill(0n);
+    const instrumentCount = symbols.length;
+    this.hasData = new Uint8Array(instrumentCount);
+    this.last = new Int32Array(instrumentCount);
+    this.bid = new Int32Array(instrumentCount);
+    this.ask = new Int32Array(instrumentCount);
+    this.bidQty = new Int32Array(instrumentCount);
+    this.askQty = new Int32Array(instrumentCount);
+    this.volume = new Array<bigint>(instrumentCount).fill(0n);
+    this.notional = new Array<bigint>(instrumentCount).fill(0n);
   }
 
   /** Folds the first `updateCount` updates of `batch` into the totals. */
   add(batch: Int32Array, updateCount: number): void {
-    for (let u = 0; u < updateCount; u++) {
-      const o = u * FIELDS_PER_UPDATE;
-      const i = batch[o + F.instrument];
-      const price = batch[o + F.price];
-      const qty = batch[o + F.tradeQty];
-      this.hasData[i] = 1;
-      this.last[i] = price;
-      this.bid[i] = batch[o + F.bid];
-      this.ask[i] = batch[o + F.ask];
-      this.bidQty[i] = batch[o + F.bidQty];
-      this.askQty[i] = batch[o + F.askQty];
-      this.volume[i] += BigInt(qty);
-      this.notional[i] += BigInt(price) * BigInt(qty);
+    for (let updateIndex = 0; updateIndex < updateCount; updateIndex++) {
+      const offset = updateIndex * FIELDS_PER_UPDATE;
+      const instrument = batch[offset + FIELD.instrument];
+      const price = batch[offset + FIELD.price];
+      const quantity = batch[offset + FIELD.tradeQty];
+      this.hasData[instrument] = 1;
+      this.last[instrument] = price;
+      this.bid[instrument] = batch[offset + FIELD.bid];
+      this.ask[instrument] = batch[offset + FIELD.ask];
+      this.bidQty[instrument] = batch[offset + FIELD.bidQty];
+      this.askQty[instrument] = batch[offset + FIELD.askQty];
+      this.volume[instrument] += BigInt(quantity);
+      this.notional[instrument] += BigInt(price) * BigInt(quantity);
     }
   }
 
   snapshot(): MetricsRow[] {
-    return this.symbols.map((symbol, i) =>
-      this.hasData[i]
+    return this.symbols.map((symbol, instrument) =>
+      this.hasData[instrument]
         ? {
             symbol,
-            lastPriceCents: this.last[i],
-            spreadCents: spreadCents(this.bid[i], this.ask[i]),
-            volume: this.volume[i],
-            vwapCents: vwapCents(this.notional[i], this.volume[i]),
-            imbalance: imbalance(this.bidQty[i], this.askQty[i]),
+            lastPriceCents: this.last[instrument],
+            spreadCents: spreadCents(this.bid[instrument], this.ask[instrument]),
+            volume: this.volume[instrument],
+            vwapCents: vwapCents(this.notional[instrument], this.volume[instrument]),
+            imbalance: imbalance(this.bidQty[instrument], this.askQty[instrument]),
           }
         : emptyRow(symbol),
     );

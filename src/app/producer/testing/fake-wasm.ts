@@ -5,22 +5,24 @@ export class FakeWasm implements WasmProducer {
   inits: Array<[seed: number, instruments: number, updates: number, dstLength: number]> = [];
   batches = 0;
   initResult: string | null = null;
-  private n = 0;
-  private k = 0;
+  private instrumentCount = 0;
+  private updatesPerBatch = 0;
   private dst: Int32Array = new Int32Array(0);
 
-  init(seed: number, n: number, k: number, dst: Int32Array) {
-    this.inits.push([seed, n, k, dst.length]);
+  init(seed: number, instrumentCount: number, updatesPerBatch: number, dst: Int32Array) {
+    this.inits.push([seed, instrumentCount, updatesPerBatch, dst.length]);
     if (this.initResult === null) {
-      this.n = n;
-      this.k = k;
+      this.instrumentCount = instrumentCount;
+      this.updatesPerBatch = updatesPerBatch;
       this.dst = dst;
     }
     return this.initResult;
   }
 
   nextBatch() {
-    for (let i = 0; i < this.k; i++) this.dst.set([i % this.n, 10000, 1, 9999, 10000, 10, 10], i * 7);
+    for (let index = 0; index < this.updatesPerBatch; index++) {
+      this.dst.set([index % this.instrumentCount, 10000, 1, 9999, 10000, 10, 10], index * 7);
+    }
     this.batches++;
   }
 }

@@ -16,10 +16,10 @@ import {
 import { toProducerConfig } from './symbols';
 import { rxWorker, type RxWorker } from './worker-channel';
 
-/** Loads the worker lazily. Default: `() => import('./producer.worker?worker').then((m) => new m.default())`. */
+/** Loads the worker lazily. Default: `() => import('./producer.worker?worker').then((workerModule) => new workerModule.default())`. */
 export const PRODUCER_WORKER_LOADER = new InjectionToken<() => Promise<Worker>>('PRODUCER_WORKER_LOADER', {
   providedIn: 'root',
-  factory: () => () => import('./producer.worker?worker').then((m) => new m.default()),
+  factory: () => () => import('./producer.worker?worker').then((workerModule) => new workerModule.default()),
 });
 
 /** Loads the instrument list. Default: HttpClient GET environment.symbolsUrl. */
@@ -114,11 +114,11 @@ export class ProducerService {
     const channel = rxWorker<ToWorker, FromWorker>(worker.value);
     channel.messages$
       .pipe(
-        filter((m) => m.runId === this.runId),
+        filter((message) => message.runId === this.runId),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: (m) => this.onMessage(m),
+        next: (message) => this.onMessage(message),
         error: (err: unknown) => {
           // The crashed worker's stream is dead: drop it so the next Apply starts a new one.
           channel.terminate();
@@ -133,13 +133,13 @@ export class ProducerService {
     channel.send({ type: 'apply', runId: this.runId, config });
   }
 
-  private onMessage(m: FromWorker): void {
-    if (m.type === 'status') {
-      this._status.set(m.status);
-      this._error.set(m.error ?? null);
+  private onMessage(message: FromWorker): void {
+    if (message.type === 'status') {
+      this._status.set(message.status);
+      this._error.set(message.error ?? null);
       this._started.set(true);
     } else {
-      this._rows.set(m.rows);
+      this._rows.set(message.rows);
     }
   }
 

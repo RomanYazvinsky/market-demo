@@ -11,7 +11,7 @@ const test = base.extend<{ settings: ReturnType<typeof createSettingsForm> }>({
 });
 
 const set = ({ model }: ReturnType<typeof createSettingsForm>, field: Field, value: unknown) =>
-  model.update((m) => ({ ...m, [field]: value as number }));
+  model.update((current) => ({ ...current, [field]: value as number }));
 
 describe('settings form', () => {
   test('U05 U23 defaults are valid and round-trip', ({ settings }) => {

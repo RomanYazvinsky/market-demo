@@ -7,8 +7,8 @@ const test = base.extend<{ store: MetricsStore }>({
   store: async ({}, use) => use(new MetricsStore(['ALFA'])),
 });
 
-type U = [instrument: number, price: number, qty: number, bid: number, ask: number, bidQty: number, askQty: number];
-const pack = (...ups: U[]) => Int32Array.from(ups.flat());
+type UpdateFields = [instrument: number, price: number, quantity: number, bid: number, ask: number, bidQty: number, askQty: number];
+const pack = (...updates: UpdateFields[]) => Int32Array.from(updates.flat());
 
 describe('metric functions', () => {
   it('K02 spread is ask minus bid', () => expect(spreadCents(10196, 10200)).toBe(4));
@@ -68,7 +68,7 @@ describe('MetricsStore', () => {
 
   test('K09 stays exact over a long run', ({ store }) => {
     const big = pack([0, 2_000_000_000, 1000, 1_999_999_999, 2_000_000_000, 1, 1]);
-    for (let i = 0; i < 10_000; i++) store.add(big, 1);
+    for (let index = 0; index < 10_000; index++) store.add(big, 1);
     const [row] = store.snapshot();
     expect(row.volume).toBe(10_000_000n);
     expect(row.vwapCents).toBe(2_000_000_000);

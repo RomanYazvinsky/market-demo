@@ -15,7 +15,7 @@ describe('public/resources/sp500.json', () => {
   });
 
   it('C02 contains only ticker-shaped strings', () => {
-    sp500.forEach((s) => expect(s).toMatch(/^[A-Z]{1,5}(\.[A-Z])?$/));
+    sp500.forEach((symbol) => expect(symbol).toMatch(/^[A-Z]{1,5}(\.[A-Z])?$/));
   });
 
   it('C03 includes well-known constituents', () => {

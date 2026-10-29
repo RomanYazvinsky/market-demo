@@ -13,14 +13,14 @@ const test = baseTest.extend<{ worker: FakeWorker; channel: ReturnType<typeof rx
 
 describe('rxWorker', () => {
   test('U01 emits worker messages to every subscriber', ({ worker, channel }) => {
-    const a: number[] = [];
-    const b: number[] = [];
-    channel.messages$.subscribe((m) => a.push(m));
-    channel.messages$.subscribe((m) => b.push(m));
+    const first: number[] = [];
+    const second: number[] = [];
+    channel.messages$.subscribe((message) => first.push(message));
+    channel.messages$.subscribe((message) => second.push(message));
     worker.emit(1);
     worker.emit(2);
-    expect(a).toEqual([1, 2]);
-    expect(b).toEqual([1, 2]);
+    expect(first).toEqual([1, 2]);
+    expect(second).toEqual([1, 2]);
   });
 
   test('U02 send posts to the worker', ({ worker, channel }) => {

@@ -7,16 +7,16 @@ export type SettingsModel = Record<keyof ProducerSettings, number | null>;
 const FIELDS = Object.keys(SETTINGS_LIMITS) as (keyof ProducerSettings)[];
 
 /** Per field: required, integer, min and max from SETTINGS_LIMITS. */
-export const settingsSchema: Schema<SettingsModel> = schema<SettingsModel>((p) => {
+export const settingsSchema: Schema<SettingsModel> = schema<SettingsModel>((path) => {
   for (const field of FIELDS) {
     const { min: lo, max: hi } = SETTINGS_LIMITS[field];
     const range = `Must be ${lo}–${hi}`;
-    required(p[field], { message: 'Required' });
-    validate(p[field], ({ value }) =>
+    required(path[field], { message: 'Required' });
+    validate(path[field], ({ value }) =>
       value() === null || Number.isInteger(value()) ? undefined : { kind: 'integer', message: 'Must be a whole number' },
     );
-    min(p[field], lo, { message: range });
-    max(p[field], hi, { message: range });
+    min(path[field], lo, { message: range });
+    max(path[field], hi, { message: range });
   }
 });
 

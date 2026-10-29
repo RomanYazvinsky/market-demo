@@ -9,18 +9,18 @@ import (
 	"testing"
 )
 
-func newGen(t *testing.T, seed uint64, n int) *Generator {
-	t.Helper()
-	g, err := New(seed, n, DefaultModelConfig())
+func newGenerator(test *testing.T, seed uint64, instrumentCount int) *Generator {
+	test.Helper()
+	generator, err := New(seed, instrumentCount, DefaultModelConfig())
 	if err != nil {
-		t.Fatalf("New(%d, %d): %v", seed, n, err)
+		test.Fatalf("New(%d, %d): %v", seed, instrumentCount, err)
 	}
-	return g
+	return generator
 }
 
-func batch(g *Generator, n int) []MarketUpdate {
-	dst := make([]MarketUpdate, n)
-	g.NextBatch(dst)
+func batch(generator *Generator, size int) []MarketUpdate {
+	dst := make([]MarketUpdate, size)
+	generator.NextBatch(dst)
 	return dst
 }
 
@@ -28,200 +28,200 @@ const sampleInstruments = 5
 
 // sample is 200 batches × 1000 updates from seed 42, shared by the invariant tests (W05–W10).
 var sample = sync.OnceValues(func() ([]MarketUpdate, error) {
-	g, err := New(42, sampleInstruments, DefaultModelConfig())
+	generator, err := New(42, sampleInstruments, DefaultModelConfig())
 	if err != nil {
 		return nil, err
 	}
-	out := make([]MarketUpdate, 0, 200*MaxBatch)
+	collected := make([]MarketUpdate, 0, 200*MaxBatch)
 	dst := make([]MarketUpdate, MaxBatch)
 	for range 200 {
-		g.NextBatch(dst)
-		out = append(out, dst...)
+		generator.NextBatch(dst)
+		collected = append(collected, dst...)
 	}
-	return out, nil
+	return collected, nil
 })
 
-func eachSampled(t *testing.T, check func(u MarketUpdate) bool, what string) {
-	t.Helper()
-	ups, err := sample()
+func eachSampled(test *testing.T, check func(update MarketUpdate) bool, what string) {
+	test.Helper()
+	updates, err := sample()
 	if err != nil {
-		t.Fatalf("sample: %v", err)
+		test.Fatalf("sample: %v", err)
 	}
-	for i, u := range ups {
-		if !check(u) {
-			t.Fatalf("update %d violates %q: %+v", i, what, u)
+	for index, update := range updates {
+		if !check(update) {
+			test.Fatalf("update %d violates %q: %+v", index, what, update)
 		}
 	}
 }
 
-func TestW01_StateRetainedBetweenCalls(t *testing.T) {
-	g := newGen(t, 7, 5)
-	first, second := batch(g, 500), batch(g, 500)
-	fresh := batch(newGen(t, 7, 5), 500)
+func TestW01_StateRetainedBetweenCalls(test *testing.T) {
+	generator := newGenerator(test, 7, 5)
+	first, second := batch(generator, 500), batch(generator, 500)
+	fresh := batch(newGenerator(test, 7, 5), 500)
 	if !slices.Equal(first, fresh) {
-		t.Fatal("first batch should match a fresh generator with the same seed")
+		test.Fatal("first batch should match a fresh generator with the same seed")
 	}
 	if slices.Equal(second, fresh) {
-		t.Fatal("second batch equals a fresh first batch: state was reset between calls")
+		test.Fatal("second batch equals a fresh first batch: state was reset between calls")
 	}
 }
 
-func TestW02_BatchHasRequestedSize(t *testing.T) {
-	for _, n := range []int{1, 100, MaxBatch} {
-		for i, u := range batch(newGen(t, 1, 5), n) {
-			if u.PriceCents <= 0 {
-				t.Fatalf("n=%d: dst[%d] not filled: %+v", n, i, u)
+func TestW02_BatchHasRequestedSize(test *testing.T) {
+	for _, size := range []int{1, 100, MaxBatch} {
+		for index, update := range batch(newGenerator(test, 1, 5), size) {
+			if update.PriceCents <= 0 {
+				test.Fatalf("size=%d: dst[%d] not filled: %+v", size, index, update)
 			}
 		}
 	}
 }
 
-func TestW03_BatchSizeRange(t *testing.T) {
-	for _, n := range []int{-1, 0, MaxBatch + 1} {
-		if ValidateBatchSize(n) == nil {
-			t.Errorf("ValidateBatchSize(%d) = nil, want error", n)
+func TestW03_BatchSizeRange(test *testing.T) {
+	for _, size := range []int{-1, 0, MaxBatch + 1} {
+		if ValidateBatchSize(size) == nil {
+			test.Errorf("ValidateBatchSize(%d) = nil, want error", size)
 		}
 	}
-	for _, n := range []int{1, MaxBatch} {
-		if err := ValidateBatchSize(n); err != nil {
-			t.Errorf("ValidateBatchSize(%d) = %v", n, err)
-		}
-	}
-}
-
-func TestW04_InstrumentCountRange(t *testing.T) {
-	for _, n := range []int{-1, 0, MaxInstruments + 1} {
-		if _, err := New(1, n, DefaultModelConfig()); err == nil {
-			t.Errorf("New(1, %d) err = nil, want error", n)
-		}
-	}
-	for _, n := range []int{1, MaxInstruments} {
-		if g := newGen(t, 1, n); g.InstrumentCount() != n {
-			t.Errorf("InstrumentCount() = %d, want %d", g.InstrumentCount(), n)
+	for _, size := range []int{1, MaxBatch} {
+		if err := ValidateBatchSize(size); err != nil {
+			test.Errorf("ValidateBatchSize(%d) = %v", size, err)
 		}
 	}
 }
 
-func TestW05_InstrumentIndexInRange(t *testing.T) {
-	eachSampled(t, func(u MarketUpdate) bool {
-		return int(u.Instrument) >= 0 && int(u.Instrument) < sampleInstruments
+func TestW04_InstrumentCountRange(test *testing.T) {
+	for _, instrumentCount := range []int{-1, 0, MaxInstruments + 1} {
+		if _, err := New(1, instrumentCount, DefaultModelConfig()); err == nil {
+			test.Errorf("New(1, %d) err = nil, want error", instrumentCount)
+		}
+	}
+	for _, instrumentCount := range []int{1, MaxInstruments} {
+		if generator := newGenerator(test, 1, instrumentCount); generator.InstrumentCount() != instrumentCount {
+			test.Errorf("InstrumentCount() = %d, want %d", generator.InstrumentCount(), instrumentCount)
+		}
+	}
+}
+
+func TestW05_InstrumentIndexInRange(test *testing.T) {
+	eachSampled(test, func(update MarketUpdate) bool {
+		return int(update.Instrument) >= 0 && int(update.Instrument) < sampleInstruments
 	}, "0 <= instrument < count")
 }
 
-func TestW05_EveryInstrumentAppears(t *testing.T) {
+func TestW05_EveryInstrumentAppears(test *testing.T) {
 	seen := map[Instrument]bool{}
-	for _, u := range batch(newGen(t, 3, 5), MaxBatch) {
-		seen[u.Instrument] = true
+	for _, update := range batch(newGenerator(test, 3, 5), MaxBatch) {
+		seen[update.Instrument] = true
 	}
 	if len(seen) != 5 {
-		t.Fatalf("saw %d instruments, want 5", len(seen))
+		test.Fatalf("saw %d instruments, want 5", len(seen))
 	}
 }
 
-func TestW05_InstrumentsMayRepeatInBatch(t *testing.T) {
+func TestW05_InstrumentsMayRepeatInBatch(test *testing.T) {
 	seen := map[Instrument]int{}
-	for _, u := range batch(newGen(t, 3, 5), 100) {
-		seen[u.Instrument]++
+	for _, update := range batch(newGenerator(test, 3, 5), 100) {
+		seen[update.Instrument]++
 	}
-	for _, c := range seen {
-		if c > 1 {
+	for _, occurrences := range seen {
+		if occurrences > 1 {
 			return
 		}
 	}
-	t.Fatal("no instrument repeated in a batch of 100 over 5 instruments")
+	test.Fatal("no instrument repeated in a batch of 100 over 5 instruments")
 }
 
-func TestW06_PricesPositive(t *testing.T) {
-	eachSampled(t, func(u MarketUpdate) bool {
-		return u.PriceCents > 0 && u.BidCents > 0 && u.AskCents > 0
+func TestW06_PricesPositive(test *testing.T) {
+	eachSampled(test, func(update MarketUpdate) bool {
+		return update.PriceCents > 0 && update.BidCents > 0 && update.AskCents > 0
 	}, "prices > 0")
 }
 
-func TestW07_BidBelowAsk(t *testing.T) {
-	cfg := DefaultModelConfig()
-	eachSampled(t, func(u MarketUpdate) bool {
-		spread := int64(u.AskCents) - int64(u.BidCents)
-		return spread >= 1 && spread <= cfg.spreadCap(int64(u.AskCents))
+func TestW07_BidBelowAsk(test *testing.T) {
+	config := DefaultModelConfig()
+	eachSampled(test, func(update MarketUpdate) bool {
+		spread := int64(update.AskCents) - int64(update.BidCents)
+		return spread >= 1 && spread <= config.spreadCap(int64(update.AskCents))
 	}, "1 <= ask-bid <= spreadCap(ask)")
 }
 
-func TestW08_TradeAtBidOrAsk(t *testing.T) {
-	eachSampled(t, func(u MarketUpdate) bool {
-		p := int(u.PriceCents)
-		return p == int(u.BidCents) || p == int(u.AskCents)
+func TestW08_TradeAtBidOrAsk(test *testing.T) {
+	eachSampled(test, func(update MarketUpdate) bool {
+		price := int(update.PriceCents)
+		return price == int(update.BidCents) || price == int(update.AskCents)
 	}, "price == bid || price == ask")
 }
 
-func TestW09_TradeQuantityPositive(t *testing.T) {
-	eachSampled(t, func(u MarketUpdate) bool {
-		return u.TradeQuantity >= 1
+func TestW09_TradeQuantityPositive(test *testing.T) {
+	eachSampled(test, func(update MarketUpdate) bool {
+		return update.TradeQuantity >= 1
 	}, "tradeQuantity >= 1")
 }
 
-func TestW10_BookQuantitiesNonNegative(t *testing.T) {
-	eachSampled(t, func(u MarketUpdate) bool {
-		return u.BidQuantity >= 0 && u.AskQuantity >= 0
+func TestW10_BookQuantitiesNonNegative(test *testing.T) {
+	eachSampled(test, func(update MarketUpdate) bool {
+		return update.BidQuantity >= 0 && update.AskQuantity >= 0
 	}, "bid/ask quantity >= 0")
 }
 
-func TestW11_PricesEvolveFromPreviousValues(t *testing.T) {
-	ups, err := sample()
+func TestW11_PricesEvolveFromPreviousValues(test *testing.T) {
+	updates, err := sample()
 	if err != nil {
-		t.Fatalf("sample: %v", err)
+		test.Fatalf("sample: %v", err)
 	}
-	cfg := DefaultModelConfig()
+	config := DefaultModelConfig()
 	last := map[Instrument]MarketUpdate{}
 	changes := 0
-	for _, u := range ups {
-		if prev, ok := last[u.Instrument]; ok {
-			d := max(int64(u.BidCents)-int64(prev.BidCents), int64(prev.BidCents)-int64(u.BidCents))
-			limit := cfg.gap(int64(prev.BidCents)) + cfg.spreadCap(int64(prev.AskCents)) + 1
-			if d > limit {
-				t.Fatalf("bid jumped %d cents (limit %d, unrelated to previous value): %+v -> %+v", d, limit, prev, u)
+	for _, update := range updates {
+		if previous, ok := last[update.Instrument]; ok {
+			change := max(int64(update.BidCents)-int64(previous.BidCents), int64(previous.BidCents)-int64(update.BidCents))
+			limit := config.gap(int64(previous.BidCents)) + config.spreadCap(int64(previous.AskCents)) + 1
+			if change > limit {
+				test.Fatalf("bid jumped %d cents (limit %d, unrelated to previous value): %+v -> %+v", change, limit, previous, update)
 			}
-			if d != 0 {
+			if change != 0 {
 				changes++
 			}
 		}
-		last[u.Instrument] = u
+		last[update.Instrument] = update
 	}
 	if changes == 0 {
-		t.Fatal("prices never moved")
+		test.Fatal("prices never moved")
 	}
 }
 
-func TestW24_QuotesMoveAwayOnlyAfterExhaustion(t *testing.T) {
-	ups, err := sample()
+func TestW24_QuotesMoveAwayOnlyAfterExhaustion(test *testing.T) {
+	updates, err := sample()
 	if err != nil {
-		t.Fatalf("sample: %v", err)
+		test.Fatalf("sample: %v", err)
 	}
 	last := map[Instrument]MarketUpdate{}
-	for _, u := range ups {
-		if prev, ok := last[u.Instrument]; ok {
-			if u.AskCents > prev.AskCents && prev.AskQuantity != 0 {
-				t.Fatalf("ask moved up while %d shares were still offered: %+v -> %+v", prev.AskQuantity, prev, u)
+	for _, update := range updates {
+		if previous, ok := last[update.Instrument]; ok {
+			if update.AskCents > previous.AskCents && previous.AskQuantity != 0 {
+				test.Fatalf("ask moved up while %d shares were still offered: %+v -> %+v", previous.AskQuantity, previous, update)
 			}
-			if u.BidCents < prev.BidCents && prev.BidQuantity != 0 {
-				t.Fatalf("bid moved down while %d shares were still bid: %+v -> %+v", prev.BidQuantity, prev, u)
+			if update.BidCents < previous.BidCents && previous.BidQuantity != 0 {
+				test.Fatalf("bid moved down while %d shares were still bid: %+v -> %+v", previous.BidQuantity, previous, update)
 			}
 		}
-		last[u.Instrument] = u
+		last[update.Instrument] = update
 	}
 }
 
-func TestW12_DeterministicForSeed(t *testing.T) {
-	if !slices.Equal(batch(newGen(t, 7, 5), 500), batch(newGen(t, 7, 5), 500)) {
-		t.Fatal("same seed produced different batches")
+func TestW12_DeterministicForSeed(test *testing.T) {
+	if !slices.Equal(batch(newGenerator(test, 7, 5), 500), batch(newGenerator(test, 7, 5), 500)) {
+		test.Fatal("same seed produced different batches")
 	}
-	if slices.Equal(batch(newGen(t, 7, 5), 500), batch(newGen(t, 8, 5), 500)) {
-		t.Fatal("different seeds produced identical batches")
+	if slices.Equal(batch(newGenerator(test, 7, 5), 500), batch(newGenerator(test, 8, 5), 500)) {
+		test.Fatal("different seeds produced identical batches")
 	}
 }
 
-func TestW15_NextBatchDoesNotAllocate(t *testing.T) {
-	g := newGen(t, 1, MaxInstruments)
+func TestW15_NextBatchDoesNotAllocate(test *testing.T) {
+	generator := newGenerator(test, 1, MaxInstruments)
 	dst := make([]MarketUpdate, MaxBatch)
-	if allocs := testing.AllocsPerRun(100, func() { g.NextBatch(dst) }); allocs != 0 {
-		t.Fatalf("NextBatch allocs = %v, want 0", allocs)
+	if allocs := testing.AllocsPerRun(100, func() { generator.NextBatch(dst) }); allocs != 0 {
+		test.Fatalf("NextBatch allocs = %v, want 0", allocs)
 	}
 }

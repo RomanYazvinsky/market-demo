@@ -12,8 +12,8 @@ export function rxWorker<In, Out>(worker: Worker): RxWorker<In, Out> {
   const subject = new Subject<Out>();
   let closed = false;
 
-  const onMessage = (e: MessageEvent<Out>) => subject.next(e.data);
-  const onError = (e: ErrorEvent) => subject.error(new Error(e.message || 'Worker error'));
+  const onMessage = (event: MessageEvent<Out>) => subject.next(event.data);
+  const onError = (event: ErrorEvent) => subject.error(new Error(event.message || 'Worker error'));
   const onMessageError = () => subject.error(new Error('Worker message could not be deserialized'));
 
   worker.addEventListener('message', onMessage);

@@ -7,7 +7,7 @@ import { DEFAULT_SETTINGS, emptyRow, type MetricsRow } from './protocol';
 import { toProducerConfig } from './symbols';
 
 const SYMBOLS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'META'];
-const cfg = (s: typeof DEFAULT_SETTINGS) => toProducerConfig(s, SYMBOLS);
+const configFor = (settings: typeof DEFAULT_SETTINGS) => toProducerConfig(settings, SYMBOLS);
 
 const test = base.extend<{
   platform: string;
@@ -20,9 +20,9 @@ const test = base.extend<{
   workers: async ({}, use) => use([]),
   loader: async ({ workers }, use) =>
     use(async () => {
-      const w = new FakeWorker();
-      workers.push(w);
-      return w as unknown as Worker;
+      const worker = new FakeWorker();
+      workers.push(worker);
+      return worker as unknown as Worker;
     }),
   symbolsLoader: async ({}, use) => use(async () => SYMBOLS),
   svc: async ({ platform, loader, symbolsLoader }, use) => {
@@ -37,8 +37,8 @@ const test = base.extend<{
   },
 });
 
-const rows = (n: number, volume = 0n): MetricsRow[] =>
-  SYMBOLS.slice(0, n).map((s) => ({ ...emptyRow(s), volume }));
+const rows = (count: number, volume = 0n): MetricsRow[] =>
+  SYMBOLS.slice(0, count).map((settings) => ({ ...emptyRow(settings), volume }));
 
 describe('ProducerService', () => {
   test('U05 starts with defaults and empty rows, not started', ({ svc }) => {
@@ -53,7 +53,7 @@ describe('ProducerService', () => {
     await Promise.all([svc.start(), svc.start()]);
     await svc.start();
     expect(workers).toHaveLength(1);
-    expect(workers[0].sent).toEqual([{ type: 'apply', runId: 1, config: cfg(DEFAULT_SETTINGS) }]);
+    expect(workers[0].sent).toEqual([{ type: 'apply', runId: 1, config: configFor(DEFAULT_SETTINGS) }]);
     expect(svc.rows()).toEqual(rows(5));
   });
 });
@@ -84,7 +84,7 @@ describe('ProducerService (started)', () => {
     expect(svc.rows()).toEqual(rows(3));
     expect(svc.settings()).toEqual(next);
     expect(svc.status()).toBe('initializing');
-    expect(workers[0].sent.at(-1)).toEqual({ type: 'apply', runId: 2, config: cfg(next) });
+    expect(workers[0].sent.at(-1)).toEqual({ type: 'apply', runId: 2, config: configFor(next) });
   });
 
   test('U10 apply before the worker is ready sends only the latest settings once ready', async ({ svc, workers }) => {
@@ -92,7 +92,7 @@ describe('ProducerService (started)', () => {
     const next = { ...DEFAULT_SETTINGS, updatesPerBatch: 7 };
     svc.apply(next);
     await starting;
-    expect(workers[0].sent).toEqual([{ type: 'apply', runId: 2, config: cfg(next) }]);
+    expect(workers[0].sent).toEqual([{ type: 'apply', runId: 2, config: configFor(next) }]);
   });
 
   test('U10 drops messages from older runs', async ({ svc, workers }) => {
@@ -142,7 +142,7 @@ describe('ProducerService (symbol list failure)', () => {
     await svc.start();
     expect(svc.status()).toBe('error');
     expect(svc.error()).toBe('Failed to load instrument list: HTTP 404');
-    expect(workers.flatMap((w) => w.sent)).toEqual([]);
+    expect(workers.flatMap((worker) => worker.sent)).toEqual([]);
   });
 });
 
@@ -170,11 +170,11 @@ describe('ProducerService (recovery after a failed start)', () => {
     svc.apply(next);
     await svc.start(); // the retry started by apply()
     const live = workers.at(-1)!;
-    expect(live.sent).toEqual([{ type: 'apply', runId: 2, config: cfg(next) }]);
+    expect(live.sent).toEqual([{ type: 'apply', runId: 2, config: configFor(next) }]);
     expect(svc.rows()).toEqual(rows(3));
     expect(svc.status()).toBe('initializing');
     expect(svc.error()).toBeNull();
-    workers.slice(0, -1).forEach((w) => expect(w.terminated).toBe(true));
+    workers.slice(0, -1).forEach((worker) => expect(worker.terminated).toBe(true));
   });
 });
 
@@ -187,7 +187,7 @@ describe('ProducerService (recovery after a worker crash)', () => {
     await svc.start();
     expect(workers).toHaveLength(2);
     expect(workers[0].terminated).toBe(true);
-    expect(workers[1].sent).toEqual([{ type: 'apply', runId: 2, config: cfg(DEFAULT_SETTINGS) }]);
+    expect(workers[1].sent).toEqual([{ type: 'apply', runId: 2, config: configFor(DEFAULT_SETTINGS) }]);
     workers[1].emit({ type: 'status', runId: 2, status: 'running' });
     expect(svc.status()).toBe('running');
     expect(svc.error()).toBeNull();

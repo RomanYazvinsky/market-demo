@@ -16,93 +16,95 @@ const (
 // Generator is an order-driven market: one one-level book per instrument, a seeded PRNG
 // and the model config. Each update is one maker order followed by one trade.
 type Generator struct {
-	cfg   ModelConfig
-	rng   *rand.Rand
-	books []book // one per instrument
+	config ModelConfig
+	random *rand.Rand
+	books  []book // one per instrument
 }
 
-func New(seed uint64, instrumentCount int, cfg ModelConfig) (*Generator, error) {
+func New(seed uint64, instrumentCount int, config ModelConfig) (*Generator, error) {
 	if instrumentCount < 1 || instrumentCount > MaxInstruments {
 		return nil, fmt.Errorf("instrumentCount must be 1-%d, got %d", MaxInstruments, instrumentCount)
 	}
-	if err := cfg.Validate(); err != nil {
+	if err := config.Validate(); err != nil {
 		return nil, err
 	}
-	g := &Generator{
-		cfg:   cfg,
-		rng:   rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15)),
-		books: make([]book, instrumentCount),
+	generator := &Generator{
+		config: config,
+		random: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15)),
+		books:  make([]book, instrumentCount),
 	}
-	for i := range g.books {
-		mid := g.uniform(cfg.MinStartPriceCents, cfg.MaxStartPriceCents)
-		spread := cfg.bps(mid, cfg.InitialSpreadBps)
+	for instrument := range generator.books {
+		mid := generator.uniform(config.MinStartPriceCents, config.MaxStartPriceCents)
+		spread := config.bps(mid, config.InitialSpreadBps)
 		bid := max(1, mid-spread/2)
 		ask := bid + spread
-		g.books[i] = book{
+		generator.books[instrument] = book{
 			bid: bid, ask: ask,
-			bidQty: sharesFor(g.uniformDepth(), bid),
-			askQty: sharesFor(g.uniformDepth(), ask),
+			bidQty: sharesFor(generator.uniformDepth(), bid),
+			askQty: sharesFor(generator.uniformDepth(), ask),
 		}
 	}
-	return g, nil
+	return generator, nil
 }
 
-func ValidateBatchSize(n int) error {
-	if n < 1 || n > MaxBatch {
-		return fmt.Errorf("updatesPerBatch must be 1-%d, got %d", MaxBatch, n)
+func ValidateBatchSize(updatesPerBatch int) error {
+	if updatesPerBatch < 1 || updatesPerBatch > MaxBatch {
+		return fmt.Errorf("updatesPerBatch must be 1-%d, got %d", MaxBatch, updatesPerBatch)
 	}
 	return nil
 }
 
-func (g *Generator) InstrumentCount() int { return len(g.books) }
+func (generator *Generator) InstrumentCount() int { return len(generator.books) }
 
 // NextBatch fills every element of dst in place, without allocating. The draw order per
 // update is fixed (instrument, depth, maker side, maker budget, improve, taker side,
 // taker budget), so a seed always gives the same stream.
-func (g *Generator) NextBatch(dst []MarketUpdate) {
-	c := g.cfg
-	for k := range dst {
-		i := g.rng.IntN(len(g.books)) // an instrument may repeat or be missing in a batch
-		b := &g.books[i]
-		if moved, ok := b.refresh(c, g.uniformDepth()); ok {
-			b.clampSpread(c, moved)
+func (generator *Generator) NextBatch(dst []MarketUpdate) {
+	config := generator.config
+	for index := range dst {
+		instrument := generator.random.IntN(len(generator.books)) // an instrument may repeat or be missing in a batch
+		orderBook := &generator.books[instrument]
+		if moved, ok := orderBook.refresh(config, generator.uniformDepth()); ok {
+			orderBook.clampSpread(config, moved)
 		}
-		makerSide := g.side()
-		makerBudget := g.uniformOrder()
-		improve := g.rng.Int64N(100) < c.ImproveChancePct
-		b.makerAdd(makerSide, makerBudget, improve)
-		takerSide := g.side()
-		price, filled := b.takerTrade(takerSide, g.uniformOrder())
+		makerSide := generator.side()
+		makerBudget := generator.uniformOrder()
+		improve := generator.random.Int64N(100) < config.ImproveChancePct
+		orderBook.makerAdd(makerSide, makerBudget, improve)
+		takerSide := generator.side()
+		price, filled := orderBook.takerTrade(takerSide, generator.uniformOrder())
 		// Quantities are after the fill, so a level can show 0; it moves at that
 		// instrument's next update, which keeps price equal to this update's bid or ask.
-		dst[k] = MarketUpdate{
-			Instrument:    Instrument(i),
+		dst[index] = MarketUpdate{
+			Instrument:    Instrument(instrument),
 			PriceCents:    PriceCents(price),
 			TradeQuantity: TradeQuantity(sat32(filled)),
-			BidCents:      BidCents(b.bid),
-			AskCents:      AskCents(b.ask),
-			BidQuantity:   BidQuantity(sat32(b.bidQty)),
-			AskQuantity:   AskQuantity(sat32(b.askQty)),
+			BidCents:      BidCents(orderBook.bid),
+			AskCents:      AskCents(orderBook.ask),
+			BidQuantity:   BidQuantity(sat32(orderBook.bidQty)),
+			AskQuantity:   AskQuantity(sat32(orderBook.askQty)),
 		}
 	}
 }
 
-func (g *Generator) uniform(lo, hi int64) int64 { return lo + g.rng.Int64N(hi-lo+1) }
-
-func (g *Generator) uniformDepth() int64 {
-	return g.uniform(g.cfg.MinDepthCents, g.cfg.MaxDepthCents)
+func (generator *Generator) uniform(low, high int64) int64 {
+	return low + generator.random.Int64N(high-low+1)
 }
 
-func (g *Generator) uniformOrder() int64 {
-	return g.uniform(g.cfg.MinOrderCents, g.cfg.MaxOrderCents)
+func (generator *Generator) uniformDepth() int64 {
+	return generator.uniform(generator.config.MinDepthCents, generator.config.MaxDepthCents)
 }
 
-func (g *Generator) side() Side {
-	if g.rng.IntN(2) == 0 {
+func (generator *Generator) uniformOrder() int64 {
+	return generator.uniform(generator.config.MinOrderCents, generator.config.MaxOrderCents)
+}
+
+func (generator *Generator) side() Side {
+	if generator.random.IntN(2) == 0 {
 		return Bid
 	}
 	return Ask
 }
 
 // sat32 saturates a book quantity at math.MaxInt32 so it fits the int32 wire format.
-func sat32(v int64) int32 { return int32(min(v, math.MaxInt32)) }
+func sat32(value int64) int32 { return int32(min(value, math.MaxInt32)) }
