@@ -41,7 +41,7 @@ describe('InstrumentPage', () => {
 
   test('U35 shows chart and events of the watched symbol', async ({ producer, providers }) => {
     producer.rows.set([emptyRow('AAPL')]);
-    producer.watched.set({ symbol: 'AAPL', events: [EVENT] });
+    producer.watched.set({ symbol: 'AAPL', events: [EVENT], seconds: [] });
     await renderPage(providers);
     expect(screen.getByLabelText('Price chart')).toBeInTheDocument();
     expect(screen.getByRole('table', { name: 'Events' })).toHaveTextContent('$102.00');
@@ -49,7 +49,7 @@ describe('InstrumentPage', () => {
 
   test('U35 shows no events of another symbol', async ({ producer, providers }) => {
     producer.rows.set([emptyRow('AAPL')]);
-    producer.watched.set({ symbol: 'MSFT', events: [EVENT] });
+    producer.watched.set({ symbol: 'MSFT', events: [EVENT], seconds: [] });
     await renderPage(providers);
     expect(screen.getByRole('table', { name: 'Events' })).toHaveTextContent('No events yet');
   });

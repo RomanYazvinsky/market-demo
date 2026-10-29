@@ -160,7 +160,7 @@ export class ProducerService {
   }
 
   private clearWatchedEvents(): void {
-    this._watched.set(this.watchedSymbol === null ? null : { symbol: this.watchedSymbol, events: [] });
+    this._watched.set(this.watchedSymbol === null ? null : { symbol: this.watchedSymbol, events: [], seconds: [] });
   }
 
   /** Errors end the skeleton too, so the message is visible. The next Apply retries start(). */

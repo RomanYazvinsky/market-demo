@@ -64,10 +64,22 @@ export interface TickerEvent {
   askQty: number;
 }
 
-/** The watched symbol's latest events, oldest first. */
+/** How many seconds of one-point-per-second history the worker keeps per instrument (the 5 min chart window). */
+export const PRICE_HISTORY_SECONDS = 300;
+
+/** The last update of one second of an instrument. */
+export interface PricePoint {
+  timeMs: number;
+  priceCents: number;
+  bidCents: number;
+  askCents: number;
+}
+
+/** The watched symbol's latest events and per-second points, both oldest first. */
 export interface WatchedEvents {
   symbol: string;
   events: TickerEvent[];
+  seconds: PricePoint[];
 }
 
 /** A trade at the ask is a buy, at the bid a sell. */

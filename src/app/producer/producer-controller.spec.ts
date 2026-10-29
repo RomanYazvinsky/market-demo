@@ -147,7 +147,7 @@ describe('ProducerController', () => {
     await controller.handle({ type: 'watch', symbol: 'TSLA' });
     await apply(controller, 1);
     clock.advanceTimersByTime(1000);
-    expect(out.snapshots.at(-1)!.watched).toEqual({ symbol: 'TSLA', events: [] });
+    expect(out.snapshots.at(-1)!.watched).toEqual({ symbol: 'TSLA', events: [], seconds: [] });
   });
 
   test('K29 watch while paused posts a snapshot at once', async ({ controller, clock, out }) => {
@@ -182,6 +182,24 @@ describe('ProducerController', () => {
     expect(out.snapshots.at(-1)!.runId).toBe(2);
     expect(watched.symbol).toBe('AAPL');
     expect(watched.events.map((event) => event.sequence)).toEqual([1, 3, 5, 7, 9, 11, 13, 15, 17, 19]);
+  });
+
+  test('K31 snapshots carry one point per second of the watched symbol', async ({ controller, clock, out }) => {
+    clock.setSystemTime(10_000);
+    await controller.handle({ type: 'watch', symbol: 'AAPL' });
+    await apply(controller, 1);
+    clock.advanceTimersByTime(1900); // batches at 10.4, 10.8, 11.2 and 11.6 s
+    await controller.handle({ type: 'pause', runId: 1 });
+    expect(out.snapshots.at(-1)!.watched!.seconds.map((point) => point.timeMs)).toEqual([10_800, 11_600]);
+  });
+
+  test('K31 apply clears the per-second points', async ({ controller, clock, out }) => {
+    await controller.handle({ type: 'watch', symbol: 'AAPL' });
+    await apply(controller, 1);
+    clock.advanceTimersByTime(1000);
+    await apply(controller, 2);
+    await controller.handle({ type: 'watch', symbol: 'AAPL' });
+    expect(out.snapshots.at(-1)!.watched!.seconds).toEqual([]);
   });
 
   test('K20 dispose stops all timers', async ({ controller, clock, wasm, out }) => {

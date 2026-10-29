@@ -39,6 +39,8 @@ Every test name starts with the ID(s) it proves; `grep -rn "<ID>" src` lists the
 | K27 | Apply clears the event log; the watched symbol survives apply | S | `K27 apply clears the event log; watching survives apply` |
 | K28 | Snapshots carry the watched symbol's events (`null` when nothing is watched, `[]` when the symbol is not in the run) | S | `K28 snapshots carry no events while nothing is watched`, `K28 snapshots carry the watched symbol's events`, `K28 watched symbol outside the run has no events` |
 | K29 | A watch while running or paused posts a snapshot at once; before any run it posts nothing | S | `K29 watch while paused posts a snapshot at once`, `K29 watch while running posts a snapshot at once; null stops the events`, `K29 watch before any apply posts nothing` |
+| K30 | Price history keeps one point per second per instrument (the last update of the second) for the last 300 seconds, in fixed-size buffers | S | `price-history.spec.ts` › `K30 keeps one point per second: the last update of that second`, `K30 keeps only the last 300 seconds, oldest first`, `K30 instruments are isolated; only the first updateCount updates are read` |
+| K31 | Snapshots carry the watched symbol's per-second points; Apply clears them | S | `K31 snapshots carry one point per second of the watched symbol`, `K31 apply clears the per-second points`, `U32 K31 apply clears the events and seconds and keeps the symbol` |
 
 
 **Interfaces produced:**

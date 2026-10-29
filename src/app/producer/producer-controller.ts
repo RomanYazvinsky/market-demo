@@ -1,5 +1,6 @@
 import { EventLog } from './event-log';
 import { MetricsStore } from './metrics';
+import { PriceHistory } from './price-history';
 import { FIELDS_PER_UPDATE, type FromWorker, type ProducerConfig, type ToWorker, type WatchedEvents } from './protocol';
 import type { WasmProducer } from './wasm-api';
 
@@ -23,6 +24,7 @@ export class ProducerController {
   private ints = new Int32Array(0);
   private store = new MetricsStore([]);
   private log = new EventLog(0);
+  private history = new PriceHistory(0);
   /** Symbol shown by an instrument page; its events ride along with every snapshot. */
   private watchedSymbol: string | null = null;
   private batchTimer: ReturnType<typeof setTimeout> | undefined;
@@ -87,6 +89,7 @@ export class ProducerController {
     this.ints = ints;
     this.store = new MetricsStore(config.symbols);
     this.log = new EventLog(config.symbols.length);
+    this.history = new PriceHistory(config.symbols.length);
     this.state = 'running';
     this.startTimers();
     this.status('running');
@@ -101,7 +104,9 @@ export class ProducerController {
     this.batchTimer = setTimeout(() => {
       this.wasm!.nextBatch();
       this.store.add(this.ints, this.config!.updatesPerBatch);
-      this.log.add(this.ints, this.config!.updatesPerBatch, Date.now());
+      const timeMs = Date.now();
+      this.log.add(this.ints, this.config!.updatesPerBatch, timeMs);
+      this.history._add(this.ints, this.config!.updatesPerBatch, timeMs);
       this.scheduleBatch();
     }, this.config!.batchIntervalMs);
   }
@@ -120,7 +125,8 @@ export class ProducerController {
   private watchedEvents(): WatchedEvents | null {
     if (this.watchedSymbol === null) return null;
     const instrument = this.config!.symbols.indexOf(this.watchedSymbol);
-    return { symbol: this.watchedSymbol, events: instrument === -1 ? [] : this.log.events(instrument) };
+    if (instrument === -1) return { symbol: this.watchedSymbol, events: [], seconds: [] };
+    return { symbol: this.watchedSymbol, events: this.log.events(instrument), seconds: this.history._points(instrument) };
   }
 
   private status(status: 'initializing' | 'running' | 'paused'): void {

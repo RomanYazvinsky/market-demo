@@ -163,7 +163,7 @@ describe('ProducerService (watch)', () => {
   test('U31 watch sets an empty log for the new symbol at once', ({ svc }) => {
     expect(svc.watched()).toBeNull();
     svc.watch('MSFT');
-    expect(svc.watched()).toEqual({ symbol: 'MSFT', events: [] });
+    expect(svc.watched()).toEqual({ symbol: 'MSFT', events: [], seconds: [] });
     svc.watch(null);
     expect(svc.watched()).toBeNull();
   });
@@ -171,24 +171,24 @@ describe('ProducerService (watch)', () => {
   test('U31 applies the watched events of snapshots', async ({ svc, workers }) => {
     await svc.start();
     svc.watch('MSFT');
-    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT] } });
-    expect(svc.watched()).toEqual({ symbol: 'MSFT', events: [EVENT] });
+    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT], seconds: [] } });
+    expect(svc.watched()).toEqual({ symbol: 'MSFT', events: [EVENT], seconds: [] });
   });
 
   test('U32 ignores events of a symbol that is no longer watched', async ({ svc, workers }) => {
     await svc.start();
     svc.watch('AAPL');
-    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT] } });
+    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT], seconds: [] } });
     workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: null });
-    expect(svc.watched()).toEqual({ symbol: 'AAPL', events: [] });
+    expect(svc.watched()).toEqual({ symbol: 'AAPL', events: [], seconds: [] });
   });
 
-  test('U32 apply clears the events and keeps the symbol', async ({ svc, workers }) => {
+  test('U32 K31 apply clears the events and seconds and keeps the symbol', async ({ svc, workers }) => {
     await svc.start();
     svc.watch('MSFT');
-    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT] } });
+    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT], seconds: [] } });
     svc.apply(DEFAULT_SETTINGS);
-    expect(svc.watched()).toEqual({ symbol: 'MSFT', events: [] });
+    expect(svc.watched()).toEqual({ symbol: 'MSFT', events: [], seconds: [] });
   });
 });
 
