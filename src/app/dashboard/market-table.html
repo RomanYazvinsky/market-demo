@@ -1,31 +1,50 @@
+<mat-form-field class="w-full max-w-xs" subscriptSizing="dynamic">
+  <mat-label>Search symbol</mat-label>
+  <input #search matInput type="search" autocomplete="off" [value]="query()" (input)="query.set(search.value)" />
+</mat-form-field>
+
 <div class="wrap">
-  <table mat-table [dataSource]="rows()" [trackBy]="trackBySymbol" aria-label="Instruments">
+  <table
+    mat-table
+    [dataSource]="visibleRows()"
+    [trackBy]="trackBySymbol"
+    matSort
+    (matSortChange)="sort.set($event)"
+    aria-label="Instruments"
+  >
     <ng-container matColumnDef="symbol">
-      <th mat-header-cell *matHeaderCellDef>Symbol</th>
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Symbol</th>
       <td mat-cell *matCellDef="let row">{{ row.symbol }}</td>
     </ng-container>
     <ng-container matColumnDef="last">
-      <th mat-header-cell *matHeaderCellDef class="num">Last price</th>
+      <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="num">Last price</th>
       <td mat-cell *matCellDef="let row" class="num">{{ (row.lastPriceCents | cents | currency: 'USD') ?? '—' }}</td>
     </ng-container>
     <ng-container matColumnDef="spread">
-      <th mat-header-cell *matHeaderCellDef class="num">Spread</th>
+      <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="num">Spread</th>
       <td mat-cell *matCellDef="let row" class="num">{{ (row.spreadCents | cents | currency: 'USD') ?? '—' }}</td>
     </ng-container>
     <ng-container matColumnDef="volume">
-      <th mat-header-cell *matHeaderCellDef class="num">Volume</th>
+      <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="num">Volume</th>
       <td mat-cell *matCellDef="let row" class="num">{{ row.volume | bigint }}</td>
     </ng-container>
     <ng-container matColumnDef="vwap">
-      <th mat-header-cell *matHeaderCellDef class="num">VWAP</th>
+      <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="num">VWAP</th>
       <td mat-cell *matCellDef="let row" class="num">{{ (row.vwapCents | cents | currency: 'USD') ?? '—' }}</td>
     </ng-container>
     <ng-container matColumnDef="imbalance">
-      <th mat-header-cell *matHeaderCellDef class="num">Imbalance</th>
+      <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="num">Imbalance</th>
       <td mat-cell *matCellDef="let row" class="num">{{ (row.imbalance | number: '1.2-2') ?? '—' }}</td>
     </ng-container>
 
     <tr mat-header-row *matHeaderRowDef="columns"></tr>
     <tr mat-row *matRowDef="let row; columns: columns"></tr>
+    <tr class="mat-mdc-row" *matNoDataRow>
+      <td class="mat-mdc-cell" [attr.colspan]="columns.length">
+        @if (query()) {
+          No instruments match "{{ query() }}"
+        }
+      </td>
+    </tr>
   </table>
 </div>

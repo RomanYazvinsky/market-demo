@@ -19,6 +19,7 @@ export default defineConfig(({ mode }) => ({
       '@angular/material/button',
       '@angular/material/form-field',
       '@angular/material/input',
+      '@angular/material/sort',
       '@angular/material/table',
       '@angular/material/toolbar',
     ],
