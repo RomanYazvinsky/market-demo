@@ -48,15 +48,6 @@ With Go installed, the script builds the module (`GOOS=js GOARCH=wasm`, reproduc
 
 Without Go, it copies both files from `wasm/prebuilt/`. So the app builds and runs on a machine without Go. Because the build is reproducible, `wasm/prebuilt/` changes only with the Go sources or the Go version; commit it together with Go changes.
 
-## Deployment (GitHub Pages)
-
-`.github/workflows/pages.yml` deploys every push to `master` to https://romanyazvinsky.github.io/market-demo/ (one-time setup: repo Settings → Pages → Source: GitHub Actions). It runs the Go and Vitest suites, checks that `wasm/prebuilt/` matches the Go sources, and builds with `BASE_PATH=/<repo>/`:
-
-- `BASE_PATH` becomes Vite's `base` (asset, Wasm and instrument-list URLs) and, through `environment.baseUrl`, Angular's `APP_BASE_HREF` (router links), as Analog documents for a URL prefix.
-- `index.html` is copied to `404.html`, so a deep link to a page that is not prerendered still loads the app.
-
-A local preview under the prefix: `BASE_PATH=/market-demo/ pnpm build`, then serve a folder that contains `dist/analog/public` as `market-demo/`.
-
 ## Blocked dependency builds
 
 Because of recent supply-chain attacks through published npm packages, this project uses pnpm and runs no install/postinstall scripts of dependencies. The packages that ship such scripts have them explicitly disabled with `allowBuilds: false` in `pnpm-workspace.yaml`:
