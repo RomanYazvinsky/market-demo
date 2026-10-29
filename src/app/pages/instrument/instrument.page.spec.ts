@@ -27,14 +27,14 @@ const renderPage = async (
 };
 
 describe('InstrumentPage', () => {
-  test('U35 watches the symbol while open and stops on leave', async ({ producer, providers }) => {
+  test('U41 watches the symbol while open and stops on leave', async ({ producer, providers }) => {
     const { fixture } = await renderPage(providers);
     expect(producer.watch).toHaveBeenLastCalledWith('AAPL');
     fixture.destroy();
     expect(producer.watch).toHaveBeenLastCalledWith(null);
   });
 
-  test('U35 follows the symbol when the route param changes', async ({ producer, providers }) => {
+  test('U41 follows the symbol when the route param changes', async ({ producer, providers }) => {
     producer.rows.set([emptyRow('AAPL'), emptyRow('MSFT')]);
     const { fixture, params } = await renderPage(providers);
     params.next(convertToParamMap({ symbol: 'MSFT' }));
@@ -43,7 +43,7 @@ describe('InstrumentPage', () => {
     expect(producer.watch).toHaveBeenLastCalledWith('MSFT');
   });
 
-  test('U35 shows chart and events of the watched symbol', async ({ producer, providers }) => {
+  test('U41 shows chart and events of the watched symbol', async ({ producer, providers }) => {
     producer.rows.set([emptyRow('AAPL')]);
     producer.watched.set({ symbol: 'AAPL', events: [EVENT], seconds: [] });
     await renderPage(providers);
@@ -51,14 +51,14 @@ describe('InstrumentPage', () => {
     expect(screen.getByRole('table', { name: 'Events' })).toHaveTextContent('$102.00');
   });
 
-  test('U35 shows no events of another symbol', async ({ producer, providers }) => {
+  test('U41 shows no events of another symbol', async ({ producer, providers }) => {
     producer.rows.set([emptyRow('AAPL')]);
     producer.watched.set({ symbol: 'MSFT', events: [EVENT], seconds: [] });
     await renderPage(providers);
     expect(screen.getByRole('table', { name: 'Events' })).toHaveTextContent('No events yet');
   });
 
-  test('U35 shows a message for a symbol outside the run', async ({ producer, providers }) => {
+  test('U41 shows a message for a symbol outside the run', async ({ producer, providers }) => {
     producer.rows.set([emptyRow('MSFT')]);
     await renderPage(providers);
     expect(screen.getByText(/not in the current run/)).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe('InstrumentPage', () => {
     expect(screen.queryByLabelText('Price chart')).not.toBeInTheDocument();
   });
 
-  test('U35 shows a skeleton until the producer has started, heading always', async ({ producer, providers }) => {
+  test('U41 shows a skeleton until the producer has started, heading always', async ({ producer, providers }) => {
     producer.ready.set(false);
     await renderPage(providers);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('AAPL');
@@ -74,7 +74,7 @@ describe('InstrumentPage', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
-  test('U41 the window toggle switches the charts between Live, 60 s and 5 min', async ({ producer, providers }) => {
+  test('U47 the window toggle switches the charts between Live, 60 s and 5 min', async ({ producer, providers }) => {
     producer.rows.set([emptyRow('AAPL')]);
     producer.watched.set({ symbol: 'AAPL', events: [EVENT], seconds: [{ timeMs: 5_000, priceCents: 10200, bidCents: 10196, askCents: 10200 }] });
     const updates: PriceSeries[] = [];
@@ -89,19 +89,19 @@ describe('InstrumentPage', () => {
     expect(updates.at(-1)).toMatchObject({ axis: 'time', xs: [5_000], xMin: -295_000 });
   });
 
-  test('U43 the heading shows "full name (ticker)"', async ({ producer, providers }) => {
+  test('U32 the heading shows "full name (ticker)"', async ({ producer, providers }) => {
     producer.names.set(new Map([['AAPL', 'Apple Inc.']]));
     await renderPage(providers);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Apple Inc. (AAPL)');
   });
 
-  test('U38 shows the current spread', async ({ producer, providers }) => {
+  test('U44 shows the current spread', async ({ producer, providers }) => {
     producer.rows.set([{ ...emptyRow('AAPL'), spreadCents: 4 }]);
     await renderPage(providers);
     expect(screen.getByLabelText('Current spread')).toHaveTextContent('$0.04');
   });
 
-  test('U38 the spread is unavailable before data', async ({ producer, providers }) => {
+  test('U44 the spread is unavailable before data', async ({ producer, providers }) => {
     producer.rows.set([emptyRow('AAPL')]);
     await renderPage(providers);
     expect(screen.getByLabelText('Current spread')).toHaveTextContent('—');

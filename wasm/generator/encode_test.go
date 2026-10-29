@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestW14_EncodeLayout(test *testing.T) {
+func TestW15_EncodeLayout(test *testing.T) {
 	updates := []MarketUpdate{
 		{Instrument: 3, PriceCents: 10200, TradeQuantity: 30, BidCents: 10196, AskCents: 10200, BidQuantity: 600, AskQuantity: 400},
 		{Instrument: 1, PriceCents: 1, TradeQuantity: 2, BidCents: 1, AskCents: 2, BidQuantity: 0, AskQuantity: 7},
@@ -20,7 +20,7 @@ func TestW14_EncodeLayout(test *testing.T) {
 	}
 }
 
-func TestW15_EncodeDoesNotAllocate(test *testing.T) {
+func TestW16_EncodeDoesNotAllocate(test *testing.T) {
 	updates := make([]MarketUpdate, MaxBatch)
 	encoded := make([]byte, MaxBatch*BytesPerUpdate)
 	if allocs := testing.AllocsPerRun(100, func() { Encode(encoded, updates) }); allocs != 0 {

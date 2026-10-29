@@ -14,20 +14,20 @@ const retype = async (label: string, value: string) => {
 const applyButton = () => screen.getByRole('button', { name: 'Apply' });
 
 describe('SettingsPage', () => {
-  test('U05 shows current settings', async ({ providers }) => {
+  test('U01 shows current settings', async ({ providers }) => {
     await render(SettingsPage, { providers });
     expect(field('Instrument count')).toHaveValue(5);
     expect(field('Updates per batch')).toHaveValue(100);
     expect(field('Batch interval (ms)')).toHaveValue(500);
   });
 
-  test('U25 editing does not affect the producer', async ({ producer, providers }) => {
+  test('U19 editing does not affect the producer', async ({ producer, providers }) => {
     await render(SettingsPage, { providers });
     await retype('Instrument count', '10');
     expect(producer.apply).not.toHaveBeenCalled();
   });
 
-  test('U25 Apply sends the edited settings once', async ({ producer, providers }) => {
+  test('U19 Apply sends the edited settings once', async ({ producer, providers }) => {
     await render(SettingsPage, { providers });
     await retype('Instrument count', '10');
     await userEvent.click(applyButton());
@@ -36,7 +36,7 @@ describe('SettingsPage', () => {
   });
 
   test.for([['Batch interval (ms)', '10'], ['Batch interval (ms)', '1.5'], ['Updates per batch', '']])(
-    'U26 apply disabled while invalid: %s = "%s"',
+    'U20 apply disabled while invalid: %s = "%s"',
     async ([label, value], { producer, providers }) => {
       await render(SettingsPage, { providers });
       await retype(label, value);
@@ -47,7 +47,7 @@ describe('SettingsPage', () => {
     },
   );
 
-  test('U42 Apply shows a confirmation that disappears after 3 seconds', async ({ providers }) => {
+  test('U31 Apply shows a confirmation that disappears after 3 seconds', async ({ providers }) => {
     vi.useFakeTimers();
     try {
       const { fixture } = await render(SettingsPage, { providers });
@@ -65,7 +65,7 @@ describe('SettingsPage', () => {
     }
   });
 
-  test('U47 Back without earlier history goes to the dashboard', async ({ providers }) => {
+  test('U36 Back without earlier history goes to the dashboard', async ({ providers }) => {
     const { fixture } = await render(SettingsPage, { providers });
     const router = fixture.debugElement.injector.get(Router);
     const navigate = vi.spyOn(router, 'navigateByUrl');
@@ -83,7 +83,7 @@ describe('SettingsPage', () => {
     expect(producer.apply).not.toHaveBeenCalled();
   });
 
-  test('U24 shows a readable error after the field is touched', async ({ providers }) => {
+  test('U18 shows a readable error after the field is touched', async ({ providers }) => {
     await render(SettingsPage, { providers });
     await retype('Instrument count', '51');
     await userEvent.tab();

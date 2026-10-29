@@ -1,7 +1,7 @@
 package generator
 
-// Test names carry requirement IDs (W01…); see the matrix in
-// docs/superpowers/plans/2026-10-28-realtime-dashboard/02-wasm.md.
+// Test names carry requirement IDs (W01…); requirements are in
+// docs/requirements.md.
 
 import (
 	"slices"
@@ -217,7 +217,7 @@ func tradedLevelEmptied(update MarketUpdate) bool {
 	return update.BidQuantity == 0
 }
 
-func TestW34_EverySweepEmptiesTheTradedLevel(test *testing.T) {
+func TestW27_EverySweepEmptiesTheTradedLevel(test *testing.T) {
 	config := DefaultModelConfig()
 	config.SweepChancePct = 100
 	generator, err := New(42, 3, config)
@@ -231,7 +231,7 @@ func TestW34_EverySweepEmptiesTheTradedLevel(test *testing.T) {
 	}
 }
 
-func TestW34_SweepRateFollowsConfig(test *testing.T) {
+func TestW27_SweepRateFollowsConfig(test *testing.T) {
 	updates, err := sample()
 	if err != nil {
 		test.Fatalf("sample: %v", err)
@@ -249,7 +249,7 @@ func TestW34_SweepRateFollowsConfig(test *testing.T) {
 	}
 }
 
-func TestW35_SpreadReturnsAfterTheWait(test *testing.T) {
+func TestW28_SpreadReturnsAfterTheWait(test *testing.T) {
 	config := DefaultModelConfig()
 	config.SweepChancePct = 0
 	config.MinDepthCents, config.MaxDepthCents = 1_000_000_000, 1_000_000_000 // no natural exhaustion
@@ -282,7 +282,7 @@ func TestW12_DeterministicForSeed(test *testing.T) {
 	}
 }
 
-func TestW15_NextBatchDoesNotAllocate(test *testing.T) {
+func TestW16_NextBatchDoesNotAllocate(test *testing.T) {
 	generator := newGenerator(test, 1, MaxInstruments)
 	dst := make([]MarketUpdate, MaxBatch)
 	if allocs := testing.AllocsPerRun(100, func() { generator.NextBatch(dst) }); allocs != 0 {

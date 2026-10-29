@@ -49,7 +49,7 @@ const rows = (count: number, volume = 0n): MetricsRow[] =>
   SYMBOLS.slice(0, count).map((settings) => ({ ...emptyRow(settings), volume }));
 
 describe('ProducerService', () => {
-  test('U05 starts with defaults and empty rows, not started', ({ svc }) => {
+  test('U01 starts with defaults and empty rows, not started', ({ svc }) => {
     expect(svc.status()).toBe('initializing');
     expect(svc.error()).toBeNull();
     expect(svc.ready()).toBe(false);
@@ -57,7 +57,7 @@ describe('ProducerService', () => {
     expect(svc.rows()).toEqual([]);
   });
 
-  test('U05 U06 U44 load loads exactly one worker and starts no run', async ({ svc, workers }) => {
+  test('U01 U02 U33 load loads exactly one worker and starts no run', async ({ svc, workers }) => {
     await Promise.all([svc.load(), svc.load()]);
     await svc.load();
     expect(workers).toHaveLength(1);
@@ -67,14 +67,14 @@ describe('ProducerService', () => {
     expect(svc.rows()).toEqual(rows(5));
   });
 
-  test('U14 U44 start runs the current settings', async ({ svc, workers }) => {
+  test('U09 U33 start runs the current settings', async ({ svc, workers }) => {
     await svc.load();
     svc.start();
     expect(workers[0].sent).toEqual([{ type: 'apply', runId: 1, config: configFor(DEFAULT_SETTINGS) }]);
     expect(svc.status()).toBe('initializing');
   });
 
-  test('U44 Apply before Start starts the run with the new settings', async ({ svc, workers }) => {
+  test('U33 Apply before Start starts the run with the new settings', async ({ svc, workers }) => {
     await svc.load();
     const next = { ...DEFAULT_SETTINGS, instrumentCount: 3 };
     svc.apply(next);
@@ -83,7 +83,7 @@ describe('ProducerService', () => {
 });
 
 describe('ProducerService (names)', () => {
-  test('U43 exposes the instrument names once the list is loaded', async ({ svc }) => {
+  test('U32 exposes the instrument names once the list is loaded', async ({ svc }) => {
     expect(svc.names().size).toBe(0);
     await loadAndStart(svc);
     expect(svc.names().get('MSFT')).toBe('MSFT Inc.');
@@ -93,14 +93,14 @@ describe('ProducerService (names)', () => {
 
 describe('ProducerService (server)', () => {
   test.scoped({ platform: 'server' }); // applies to this describe only
-  test('U06 U22 does not load a worker on the server', async ({ svc, workers }) => {
+  test('U02 U27 does not load a worker on the server', async ({ svc, workers }) => {
     await svc.load();
     expect(workers).toHaveLength(0);
   });
 });
 
 describe('ProducerService (started)', () => {
-  test('U08 applies status and snapshots of the current run', async ({ svc, workers }) => {
+  test('U03 applies status and snapshots of the current run', async ({ svc, workers }) => {
     await loadAndStart(svc);
     workers[0].emit({ type: 'status', runId: 1, status: 'running' });
     workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5, 7n) });
@@ -109,7 +109,7 @@ describe('ProducerService (started)', () => {
     expect(svc.rows()).toEqual(rows(5, 7n));
   });
 
-  test('U09 U14 apply resets rows immediately and increments runId', async ({ svc, workers }) => {
+  test('U04 U09 apply resets rows immediately and increments runId', async ({ svc, workers }) => {
     await loadAndStart(svc);
     workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5, 7n) });
     const next = { ...DEFAULT_SETTINGS, instrumentCount: 3 };
@@ -120,7 +120,7 @@ describe('ProducerService (started)', () => {
     expect(workers[0].sent.at(-1)).toEqual({ type: 'apply', runId: 2, config: configFor(next) });
   });
 
-  test('U10 apply before the worker is ready sends only the latest settings once ready', async ({ svc, workers }) => {
+  test('U05 apply before the worker is ready sends only the latest settings once ready', async ({ svc, workers }) => {
     const loading = svc.load();
     svc.start();
     const next = { ...DEFAULT_SETTINGS, updatesPerBatch: 7 };
@@ -129,7 +129,7 @@ describe('ProducerService (started)', () => {
     expect(workers[0].sent).toEqual([{ type: 'apply', runId: 2, config: configFor(next) }]);
   });
 
-  test('U10 drops messages from older runs', async ({ svc, workers }) => {
+  test('U05 drops messages from older runs', async ({ svc, workers }) => {
     await loadAndStart(svc);
     svc.apply(DEFAULT_SETTINGS);
     svc.apply(DEFAULT_SETTINGS);
@@ -140,7 +140,7 @@ describe('ProducerService (started)', () => {
     expect(svc.error()).toBeNull();
   });
 
-  test('U11 pause and resume carry the current runId', async ({ svc, workers }) => {
+  test('U06 pause and resume carry the current runId', async ({ svc, workers }) => {
     await loadAndStart(svc);
     svc.apply(DEFAULT_SETTINGS);
     svc.pause();
@@ -148,21 +148,21 @@ describe('ProducerService (started)', () => {
     expect(workers[0].sent.slice(-2)).toEqual([{ type: 'pause', runId: 2 }, { type: 'resume', runId: 2 }]);
   });
 
-  test('U12 surfaces worker status errors', async ({ svc, workers }) => {
+  test('U07 surfaces worker status errors', async ({ svc, workers }) => {
     await loadAndStart(svc);
     workers[0].emit({ type: 'status', runId: 1, status: 'error', error: 'Failed to load /producer.wasm: HTTP 404' });
     expect(svc.status()).toBe('error');
     expect(svc.error()).toContain('404');
   });
 
-  test('U12 surfaces worker crashes', async ({ svc, workers }) => {
+  test('U07 surfaces worker crashes', async ({ svc, workers }) => {
     await loadAndStart(svc);
     workers[0].crash('boom');
     expect(svc.status()).toBe('error');
     expect(svc.error()).toBe('boom');
   });
 
-  test('U13 terminates the worker when the app is destroyed', async ({ svc, workers }) => {
+  test('U08 terminates the worker when the app is destroyed', async ({ svc, workers }) => {
     await loadAndStart(svc);
     TestBed.resetTestingModule();
     expect(workers[0].terminated).toBe(true);
@@ -172,7 +172,7 @@ describe('ProducerService (started)', () => {
 describe('ProducerService (run time)', () => {
   afterEach(() => vi.useRealTimers());
 
-  test('U46 counts the run time from status messages, without paused intervals', async ({ svc, workers }) => {
+  test('U35 counts the run time from status messages, without paused intervals', async ({ svc, workers }) => {
     vi.useFakeTimers();
     await loadAndStart(svc);
     expect(svc.elapsedMs()).toBe(0);
@@ -188,7 +188,7 @@ describe('ProducerService (run time)', () => {
     expect(svc.elapsedMs()).toBe(3_500);
   });
 
-  test('U46 apply resets the run time; an error stops it', async ({ svc, workers }) => {
+  test('U35 apply resets the run time; an error stops it', async ({ svc, workers }) => {
     vi.useFakeTimers();
     await loadAndStart(svc);
     workers[0].emit({ type: 'status', runId: 1, status: 'running' });
@@ -204,20 +204,20 @@ describe('ProducerService (run time)', () => {
 });
 
 describe('ProducerService (watch)', () => {
-  test('U31 watch sends the symbol to the worker', async ({ svc, workers }) => {
+  test('U37 watch sends the symbol to the worker', async ({ svc, workers }) => {
     await loadAndStart(svc);
     svc.watch('MSFT');
     svc.watch(null);
     expect(workers[0].sent.slice(-2)).toEqual([{ type: 'watch', symbol: 'MSFT' }, { type: 'watch', symbol: null }]);
   });
 
-  test('U31 a watch before the worker is up is sent before the first apply', async ({ svc, workers }) => {
+  test('U37 a watch before the worker is up is sent before the first apply', async ({ svc, workers }) => {
     svc.watch('MSFT');
     await loadAndStart(svc);
     expect(workers[0].sent).toEqual([{ type: 'watch', symbol: 'MSFT' }, { type: 'apply', runId: 1, config: configFor(DEFAULT_SETTINGS) }]);
   });
 
-  test('U31 a replacement worker gets the watch before its apply', async ({ svc, workers }) => {
+  test('U37 a replacement worker gets the watch before its apply', async ({ svc, workers }) => {
     await loadAndStart(svc);
     svc.watch('MSFT');
     workers[0].crash('boom');
@@ -226,7 +226,7 @@ describe('ProducerService (watch)', () => {
     expect(workers[1].sent.map((message) => (message as { type: string }).type)).toEqual(['watch', 'apply']);
   });
 
-  test('U31 watch sets an empty log for the new symbol at once', ({ svc }) => {
+  test('U37 watch sets an empty log for the new symbol at once', ({ svc }) => {
     expect(svc.watched()).toBeNull();
     svc.watch('MSFT');
     expect(svc.watched()).toEqual({ symbol: 'MSFT', events: [], seconds: [] });
@@ -234,14 +234,14 @@ describe('ProducerService (watch)', () => {
     expect(svc.watched()).toBeNull();
   });
 
-  test('U31 applies the watched events of snapshots', async ({ svc, workers }) => {
+  test('U37 applies the watched events of snapshots', async ({ svc, workers }) => {
     await loadAndStart(svc);
     svc.watch('MSFT');
     workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT], seconds: [] } });
     expect(svc.watched()).toEqual({ symbol: 'MSFT', events: [EVENT], seconds: [] });
   });
 
-  test('U32 ignores events of a symbol that is no longer watched', async ({ svc, workers }) => {
+  test('U38 ignores events of a symbol that is no longer watched', async ({ svc, workers }) => {
     await loadAndStart(svc);
     svc.watch('AAPL');
     workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT], seconds: [] } });
@@ -249,7 +249,7 @@ describe('ProducerService (watch)', () => {
     expect(svc.watched()).toEqual({ symbol: 'AAPL', events: [], seconds: [] });
   });
 
-  test('U32 K31 apply clears the events and seconds and keeps the symbol', async ({ svc, workers }) => {
+  test('U38 K31 apply clears the events and seconds and keeps the symbol', async ({ svc, workers }) => {
     await loadAndStart(svc);
     svc.watch('MSFT');
     workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT], seconds: [] } });
@@ -261,7 +261,7 @@ describe('ProducerService (watch)', () => {
 describe('ProducerService (symbol list failure)', () => {
   // A function value would be run as a fixture factory, so the loader is provided via `use`.
   test.scoped({ symbolsLoader: async ({}, use) => use(() => Promise.reject(new Error('HTTP 404'))) });
-  test('U12 reports a missing instrument list and sends nothing', async ({ svc, workers }) => {
+  test('U07 reports a missing instrument list and sends nothing', async ({ svc, workers }) => {
     await svc.load();
     expect(svc.status()).toBe('error');
     expect(svc.error()).toBe('Failed to load instrument list: HTTP 404');
@@ -271,7 +271,7 @@ describe('ProducerService (symbol list failure)', () => {
 
 describe('ProducerService (loader failure)', () => {
   test.scoped({ loader: async ({}, use) => use(() => Promise.reject(new Error('chunk 404'))) });
-  test('U12 reports a loader failure as an error status', async ({ svc }) => {
+  test('U07 reports a loader failure as an error status', async ({ svc }) => {
     await svc.load();
     expect(svc.status()).toBe('error');
     expect(svc.error()).toBe('Failed to start producer: chunk 404');
@@ -286,7 +286,7 @@ describe('ProducerService (recovery after a failed start)', () => {
       await use(() => (calls++ === 0 ? Promise.reject(new Error('HTTP 503')) : Promise.resolve(INSTRUMENTS)));
     },
   });
-  test('U12 apply after a failed load retries the load and applies the new settings', async ({ svc, workers }) => {
+  test('U07 apply after a failed load retries the load and applies the new settings', async ({ svc, workers }) => {
     await svc.load();
     expect(svc.status()).toBe('error');
     const next = { ...DEFAULT_SETTINGS, instrumentCount: 3 };
@@ -302,7 +302,7 @@ describe('ProducerService (recovery after a failed start)', () => {
 });
 
 describe('ProducerService (recovery after a worker crash)', () => {
-  test('U12 apply after a worker crash replaces the dead worker', async ({ svc, workers }) => {
+  test('U07 apply after a worker crash replaces the dead worker', async ({ svc, workers }) => {
     await loadAndStart(svc);
     workers[0].crash('boom');
     expect(svc.status()).toBe('error');

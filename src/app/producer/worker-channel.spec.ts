@@ -12,7 +12,7 @@ const test = baseTest.extend<{ worker: FakeWorker; channel: ReturnType<typeof rx
 });
 
 describe('rxWorker', () => {
-  test('U01 emits worker messages to every subscriber', ({ worker, channel }) => {
+  test('U22 emits worker messages to every subscriber', ({ worker, channel }) => {
     const first: number[] = [];
     const second: number[] = [];
     channel.messages$.subscribe((message) => first.push(message));
@@ -23,19 +23,19 @@ describe('rxWorker', () => {
     expect(second).toEqual([1, 2]);
   });
 
-  test('U02 send posts to the worker', ({ worker, channel }) => {
+  test('U23 send posts to the worker', ({ worker, channel }) => {
     channel.send('hello');
     expect(worker.sent).toEqual(['hello']);
   });
 
-  test('U03 worker error becomes an error notification', ({ worker, channel }) => {
+  test('U24 worker error becomes an error notification', ({ worker, channel }) => {
     const error = vi.fn();
     channel.messages$.subscribe({ error });
     worker.crash('boom');
     expect(error).toHaveBeenCalledWith(expect.objectContaining({ message: 'boom' }));
   });
 
-  test('U04 terminate completes the stream, terminates the worker, and is idempotent', ({ worker, channel }) => {
+  test('U25 terminate completes the stream, terminates the worker, and is idempotent', ({ worker, channel }) => {
     const complete = vi.fn();
     channel.messages$.subscribe({ complete });
     channel.terminate();
@@ -45,7 +45,7 @@ describe('rxWorker', () => {
     worker.emit(3); // ignored after terminate
   });
 
-  test('U02 U04 send after terminate is a no-op', ({ worker, channel }) => {
+  test('U23 U25 send after terminate is a no-op', ({ worker, channel }) => {
     channel.terminate();
     channel.send('late');
     expect(worker.sent).toEqual([]);

@@ -14,7 +14,7 @@ const header = (name: string) => screen.getByRole('columnheader', { name: new Re
 const cellsOf = (row: HTMLElement) => within(row).getAllByRole('cell').map((cell) => cell.textContent!.trim());
 
 describe('DashboardPage', () => {
-  test('U18 U19 renders one formatted row per instrument', async ({ producer, providers }) => {
+  test('U13 U14 renders one formatted row per instrument', async ({ producer, providers }) => {
     producer.rows.set([ALFA, emptyRow('BETA')]);
     await render(DashboardPage, { providers });
     expect(screen.getAllByRole('columnheader').map((header) => header.textContent!.trim()))
@@ -25,14 +25,14 @@ describe('DashboardPage', () => {
     ]);
   });
 
-  test('U44 before the first run lists the instruments with empty values', async ({ producer, providers }) => {
+  test('U33 before the first run lists the instruments with empty values', async ({ producer, providers }) => {
     producer.status.set('idle');
     producer.rows.set([emptyRow('ALFA')]);
     await render(DashboardPage, { providers });
     expect(bodyRows().map(cellsOf)).toEqual([['ALFA', '—', '—', '0', '—', '—']]);
   });
 
-  test('U22 shows a skeleton until the producer has started, heading always', async ({ producer, providers }) => {
+  test('U27 shows a skeleton until the producer has started, heading always', async ({ producer, providers }) => {
     producer.ready.set(false);
     await render(DashboardPage, { providers });
     expect(screen.getByRole('heading', { name: 'Market dashboard' })).toBeInTheDocument();
@@ -86,7 +86,7 @@ describe('DashboardPage', () => {
     expect(bodyRows()[0]).toHaveTextContent('No instruments match "zz"');
   });
 
-  test('U43 shows "full name (ticker)" and searches and sorts by it', async ({ producer, providers }) => {
+  test('U32 shows "full name (ticker)" and searches and sorts by it', async ({ producer, providers }) => {
     producer.names.set(new Map([['ALFA', 'Zulu Corp'], ['GAMA', 'Alpha Inc.']]));
     producer.rows.set([ALFA, emptyRow('BETA'), GAMA]);
     await render(DashboardPage, { providers });
@@ -97,7 +97,7 @@ describe('DashboardPage', () => {
     expect(symbols()).toEqual(['Zulu Corp (ALFA)']);
   });
 
-  test('U36 U48 with charts on, the symbol cell links to its instrument page', async ({ producer, providers }) => {
+  test('U42 U48 with charts on, the symbol cell links to its instrument page', async ({ producer, providers }) => {
     producer.rows.set([ALFA]);
     const { fixture } = await render(DashboardPage, { providers });
     fixture.debugElement.injector.get(DisplaySettings).showCharts.set(true);

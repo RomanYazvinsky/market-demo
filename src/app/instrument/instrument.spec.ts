@@ -19,7 +19,7 @@ class FakeChart implements PriceChartHandle {
 }
 
 describe('toPriceSeries', () => {
-  it('U34 U38 maps events to price, bid, ask and spread series in dollars', () => {
+  it('U40 U44 maps events to price, bid, ask and spread series in dollars', () => {
     expect(toPriceSeries([BUY, SELL])).toEqual({
       axis: 'event', xMin: 2, xMax: 5,
       xs: [2, 5], prices: [102, 101.96], bids: [101.96, 101.96], asks: [102, 102], spreads: [0.04, 0.04],
@@ -30,7 +30,7 @@ describe('toPriceSeries', () => {
 const point = (timeMs: number, priceCents = 10200): PricePoint => ({ timeMs, priceCents, bidCents: priceCents - 4, askCents: priceCents });
 
 describe('_toTimeSeries', () => {
-  it('U40 keeps the points of the window that ends at the newest point, x in ms', () => {
+  it('U46 keeps the points of the window that ends at the newest point, x in ms', () => {
     const series = _toTimeSeries([point(1_000), point(40_000, 10300), point(70_000, 10400)], 60_000);
     expect(series).toEqual({
       axis: 'time', xMin: 10_000, xMax: 70_000,
@@ -38,7 +38,7 @@ describe('_toTimeSeries', () => {
     });
   });
 
-  it('U40 an empty history has an empty series', () => {
+  it('U46 an empty history has an empty series', () => {
     expect(_toTimeSeries([], 60_000)).toMatchObject({ axis: 'time', xs: [], xMin: undefined, xMax: undefined });
   });
 });
@@ -61,7 +61,7 @@ describe('PriceChart', () => {
     return { ...view, charts, canvases };
   };
 
-  it('U34 U38 creates the price and spread charts after render and updates them with new events', async () => {
+  it('U40 U44 creates the price and spread charts after render and updates them with new events', async () => {
     const { charts, canvases, fixture } = await setup();
     expect(canvases).toEqual([{ price: screen.getByLabelText('Price chart'), spread: screen.getByLabelText('Spread chart') }]);
     expect(charts[0].updates.at(-1)!.xs).toEqual([2]);
@@ -70,7 +70,7 @@ describe('PriceChart', () => {
     expect(charts[0].updates.at(-1)!.xs).toEqual([2, 5]);
   });
 
-  it('U40 a time window charts the per-second points', async () => {
+  it('U46 a time window charts the per-second points', async () => {
     const { charts, fixture } = await setup();
     fixture.componentRef.setInput('window', 'last60s');
     await fixture.whenStable();
@@ -80,20 +80,20 @@ describe('PriceChart', () => {
     expect(charts[0].updates.at(-1)).toMatchObject({ axis: 'time', xMin: -298_000 });
   });
 
-  it('U34 destroys the chart with the component', async () => {
+  it('U40 destroys the chart with the component', async () => {
     const { charts, fixture } = await setup();
     fixture.destroy();
     expect(charts[0].destroyed).toBe(true);
   });
 
-  it('U34 does not create a chart on the server', async () => {
+  it('U40 does not create a chart on the server', async () => {
     const { charts } = await setup('server');
     expect(charts).toEqual([]);
   });
 });
 
 describe('EventTable', () => {
-  it('U33 lists events newest first with formatted columns', async () => {
+  it('U39 lists events newest first with formatted columns', async () => {
     await render(EventTable, {
       inputs: { events: [BUY, SELL] },
       providers: [{ provide: DATE_PIPE_DEFAULT_OPTIONS, useValue: { timezone: 'UTC' } }],
@@ -109,7 +109,7 @@ describe('EventTable', () => {
     ]);
   });
 
-  it('U33 says when there are no events yet', async () => {
+  it('U39 says when there are no events yet', async () => {
     await render(EventTable, { inputs: { events: [] } });
     expect(screen.getByRole('table', { name: 'Events' })).toHaveTextContent('No events yet');
   });

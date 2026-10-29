@@ -46,7 +46,7 @@ func TestW26_MakerJoinAddsShares(test *testing.T) {
 	}
 }
 
-func TestW34_SweepBudgetEmptiesLevel(test *testing.T) {
+func TestW27_SweepBudgetEmptiesLevel(test *testing.T) {
 	orderBook := alfa()
 	price, filled := orderBook.takerTrade(Ask, orderBook.levelCents(Ask)+100_000) // the level's value plus $1,000
 	if price != 10200 || filled != 50 || orderBook.askQty != 0 {
@@ -102,7 +102,7 @@ func TestW07_ClampSpreadPullsOtherSideIn(test *testing.T) {
 	}
 }
 
-func TestW35_OppositeSideFollowsAfterTheWait(test *testing.T) {
+func TestW28_OppositeSideFollowsAfterTheWait(test *testing.T) {
 	orderBook := book{bid: 10000, ask: 10025, bidQty: 5, askQty: 7} // a sweep moved the ask from 10020 up to 10025
 	orderBook.noteMove(Ask, 20, 2)
 	if orderBook.tickRestore(1_000_000) {
@@ -119,7 +119,7 @@ func TestW35_OppositeSideFollowsAfterTheWait(test *testing.T) {
 	}
 }
 
-func TestW35_BidMoveIsFollowedByTheAsk(test *testing.T) {
+func TestW28_BidMoveIsFollowedByTheAsk(test *testing.T) {
 	orderBook := book{bid: 9995, ask: 10020, bidQty: 5, askQty: 7} // a sweep moved the bid from 10000 down to 9995
 	orderBook.noteMove(Bid, 20, 1)
 	orderBook.tickRestore(1_000_000)
@@ -128,7 +128,7 @@ func TestW35_BidMoveIsFollowedByTheAsk(test *testing.T) {
 	}
 }
 
-func TestW35_LaterMovesKeepTheFirstSpreadAndWait(test *testing.T) {
+func TestW28_LaterMovesKeepTheFirstSpreadAndWait(test *testing.T) {
 	orderBook := book{bid: 10000, ask: 10025, bidQty: 5, askQty: 7}
 	orderBook.noteMove(Ask, 20, 2) // spread 20 before the first move
 	orderBook.tickRestore(1_000_000)
@@ -142,7 +142,7 @@ func TestW35_LaterMovesKeepTheFirstSpreadAndWait(test *testing.T) {
 	}
 }
 
-func TestW35_LastMovedSideDecidesWhoFollows(test *testing.T) {
+func TestW28_LastMovedSideDecidesWhoFollows(test *testing.T) {
 	orderBook := book{bid: 9995, ask: 10025, bidQty: 5, askQty: 7}
 	orderBook.noteMove(Ask, 20, 1)
 	orderBook.noteMove(Bid, 25, 5) // the bid moved last, so the ask follows it
@@ -152,7 +152,7 @@ func TestW35_LastMovedSideDecidesWhoFollows(test *testing.T) {
 	}
 }
 
-func TestW35_NoRestoreWhenTheSpreadIsAlreadyNarrow(test *testing.T) {
+func TestW28_NoRestoreWhenTheSpreadIsAlreadyNarrow(test *testing.T) {
 	orderBook := book{bid: 10000, ask: 10020, bidQty: 5, askQty: 7} // the cap clamp already pulled the bid in
 	orderBook.noteMove(Ask, 20, 1)
 	orderBook.tickRestore(1_000_000)

@@ -1,5 +1,5 @@
 // @vitest-environment node
-// Test names carry requirement IDs (W…); see the matrix in docs/superpowers/plans/2026-10-28-realtime-dashboard/02-wasm.md.
+// Test names carry requirement IDs (W…); requirements are in docs/requirements.md.
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import './wasm_exec.js';
@@ -26,11 +26,11 @@ function run(seed: number, instrumentCount: number, updatesPerBatch: number): In
 const update = (ints: Int32Array, index: number) => ints.subarray(index * FIELDS_PER_UPDATE, (index + 1) * FIELDS_PER_UPDATE);
 
 describe('compiled producer.wasm', () => {
-  it('W21 nextBatch before init is a no-op', () => {
+  it('W22 nextBatch before init is a no-op', () => {
     expect(() => producer.nextBatch()).not.toThrow();
   });
 
-  it('W16 registers the producer API', () => {
+  it('W17 registers the producer API', () => {
     expect(typeof producer.init).toBe('function');
     expect(typeof producer.nextBatch).toBe('function');
   });
@@ -43,18 +43,18 @@ describe('compiled producer.wasm', () => {
     expect(producer.init({ seed: 1, instrumentCount: 5, updatesPerBatch: 1001 }, dst)).toMatch(/updatesPerBatch/);
   });
 
-  it('W17 rejects an output buffer that is too small or not an Int32Array', () => {
+  it('W18 rejects an output buffer that is too small or not an Int32Array', () => {
     expect(producer.init({ seed: 1, instrumentCount: 5, updatesPerBatch: 10 }, new Int32Array(69))).toMatch(/Int32Array/);
     expect(producer.init({ seed: 1, instrumentCount: 5, updatesPerBatch: 10 }, new Float64Array(70) as unknown as Int32Array)).toMatch(/Int32Array/);
   });
 
-  it('W20 survives invalid argument types', () => {
+  it('W21 survives invalid argument types', () => {
     expect(producer.init({ seed: 'x' as unknown as number, instrumentCount: 5, updatesPerBatch: 10 }, null as unknown as Int32Array)).toEqual(expect.any(String));
     expect(producer.init(null as unknown as ProducerInit, new Int32Array(70))).toEqual(expect.any(String));
     expect(() => run(1, 5, 10)).not.toThrow();
   });
 
-  it('W20 rejects a config with a missing field', () => {
+  it('W21 rejects a config with a missing field', () => {
     const config = { seed: 1, instrumentCount: 5 } as unknown as ProducerInit;
     expect(producer.init(config, new Int32Array(70))).toMatch(/updatesPerBatch/);
   });
@@ -75,7 +75,7 @@ describe('compiled producer.wasm', () => {
     }
   });
 
-  it('W02 W19 writes exactly updatesPerBatch updates', () => {
+  it('W02 W20 writes exactly updatesPerBatch updates', () => {
     const ints = new Int32Array(11 * FIELDS_PER_UPDATE).fill(-1);
     expect(producer.init({ seed: 7, instrumentCount: 5, updatesPerBatch: 10 }, ints)).toBeNull();
     producer.nextBatch();
@@ -83,7 +83,7 @@ describe('compiled producer.wasm', () => {
     expect(Array.from(update(ints, 10))).toEqual(Array(FIELDS_PER_UPDATE).fill(-1));
   });
 
-  it('W19 respects the byteOffset of a subarray view', () => {
+  it('W20 respects the byteOffset of a subarray view', () => {
     const backing = new Int32Array(12 * FIELDS_PER_UPDATE).fill(-1);
     const dst = backing.subarray(FIELDS_PER_UPDATE, 11 * FIELDS_PER_UPDATE); // skips the first update slot
     expect(producer.init({ seed: 3, instrumentCount: 5, updatesPerBatch: 10 }, dst)).toBeNull();
@@ -109,7 +109,7 @@ describe('compiled producer.wasm', () => {
     expect(Array.from(second)).toEqual(Array.from(first));
   });
 
-  it('W18 a rejected init keeps the previous run and its buffer', () => {
+  it('W19 a rejected init keeps the previous run and its buffer', () => {
     const ints = run(9, 5, 50);
     expect(producer.init({ seed: 9, instrumentCount: 5, updatesPerBatch: 0 }, new Int32Array(0))).toEqual(expect.any(String));
     ints.fill(0);

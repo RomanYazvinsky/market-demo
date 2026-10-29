@@ -6,7 +6,7 @@ import DashboardPage from './pages/index.page';
 import SettingsPage from './pages/settings.page';
 
 describe('App shell', () => {
-  test('U22 U45 the app name links to the dashboard; the status bar links to settings; no tabs', async ({ providers }) => {
+  test('U27 U34 the app name links to the dashboard; the status bar links to settings; no tabs', async ({ providers }) => {
     await render(App, { providers });
     expect(screen.getByRole('link', { name: 'Market producer' })).toHaveAttribute('href', '/');
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
@@ -14,13 +14,13 @@ describe('App shell', () => {
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
-  test('U07 U44 loads the producer after render, in the browser, without starting a run', async ({ producer, providers }) => {
+  test('U26 U33 loads the producer after render, in the browser, without starting a run', async ({ producer, providers }) => {
     await render(App, { providers });
     expect(producer.load).toHaveBeenCalledTimes(1);
     expect(producer.start).not.toHaveBeenCalled();
   });
 
-  test('U06 navigating between pages keeps a single producer', async ({ producer, providers }) => {
+  test('U02 navigating between pages keeps a single producer', async ({ producer, providers }) => {
     await render(App, {
       providers,
       routes: [
@@ -35,7 +35,7 @@ describe('App shell', () => {
     expect(producer.load).toHaveBeenCalledTimes(1);
   });
 
-  test('U47 Back on the settings page returns to the previous page', async ({ providers }) => {
+  test('U36 Back on the settings page returns to the previous page', async ({ providers }) => {
     await render(App, {
       providers,
       routes: [
