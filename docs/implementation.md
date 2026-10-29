@@ -122,7 +122,7 @@ After update 6 both quotes are 5¢ higher than before update 2 and the spread is
 
 `wasm/main.go` registers `globalThis.producer = { init, nextBatch }` [W17].
 
-**Why 7 numbers per update.** An update carries exactly the fields of the update in TASK.md §3, each as one int32 [W15]:
+**Why 7 numbers per update.** An update carries exactly the fields of a market update in the task, each as one int32 [W15]:
 
 | # | Field | Note |
 |---|---|---|

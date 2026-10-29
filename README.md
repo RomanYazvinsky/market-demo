@@ -13,9 +13,8 @@ Functionality:
 
 Read in this order:
 
-1. [TASK.md](TASK.md): the task statement.
-2. [docs/requirements.md](docs/requirements.md): the task split into numbered requirements for the Wasm, worker and UI modules, each linked to its tests.
-3. [docs/implementation.md](docs/implementation.md): architecture, the market update generator with an example, the Go GC issue, performance, error handling and the instrument page.
+1. [docs/requirements.md](docs/requirements.md): the task split into numbered requirements for the Wasm, worker and UI modules, each linked to its tests.
+2. [docs/implementation.md](docs/implementation.md): architecture, the market update generator with an example, the Go GC issue, performance, error handling and the instrument page.
 
 ## Prerequisites
 
