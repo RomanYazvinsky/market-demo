@@ -5,10 +5,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSortModule, type Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { RouterLink } from '@angular/router';
-import type { MetricsRow } from '../producer/protocol';
-import { BigIntPipe } from '../shared/bigint.pipe';
-import { CentsPipe } from '../shared/cents.pipe';
-import { instrumentLabel } from '../shared/instrument-label';
+import type { MetricsRow } from '../../producer/protocol';
+import { BigIntPipe } from '../../shared/bigint.pipe';
+import { CentsPipe } from '../../shared/cents.pipe';
+import { instrumentLabel } from '../../shared/instrument-label';
 
 const SORT_KEYS = {
   symbol: 'symbol',

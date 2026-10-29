@@ -1,5 +1,5 @@
 import { Component, input } from '@angular/core';
-import type { ProducerStatus } from '../producer/protocol';
+import type { ProducerStatus } from '../../producer/protocol';
 
 @Component({
   selector: 'app-status-badge',

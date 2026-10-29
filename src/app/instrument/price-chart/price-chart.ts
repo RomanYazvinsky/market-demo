@@ -13,7 +13,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import type { PricePoint, TickerEvent } from '../producer/protocol';
+import type { PricePoint, TickerEvent } from '../../producer/protocol';
 
 /** Live: the last 100 updates; the time windows: one point per second. */
 export type ChartWindow = 'live' | 'last60s' | 'last5m';

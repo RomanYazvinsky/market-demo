@@ -1,8 +1,8 @@
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { Component, computed, input } from '@angular/core';
 import { MatTableModule } from '@angular/material/table';
-import { tradeSide, type TickerEvent } from '../producer/protocol';
-import { CentsPipe } from '../shared/cents.pipe';
+import { tradeSide, type TickerEvent } from '../../producer/protocol';
+import { CentsPipe } from '../../shared/cents.pipe';
 
 @Component({
   selector: 'app-event-table',

@@ -4,7 +4,7 @@ import { render, screen, within } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { BehaviorSubject } from 'rxjs';
 import { pageTest as test } from '../../../testing/producer-fixtures';
-import { PRICE_CHART_FACTORY, type PriceSeries } from '../../instrument/price-chart';
+import { PRICE_CHART_FACTORY, type PriceSeries } from '../../instrument/price-chart/price-chart';
 import { emptyRow, type TickerEvent } from '../../producer/protocol';
 import InstrumentPage from './[symbol].page';
 

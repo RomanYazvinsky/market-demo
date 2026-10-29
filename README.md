@@ -85,8 +85,8 @@ src/app/producer/               protocol, wasm contract, worker (controller, met
 src/app/shared/                 cents and bigint pipes, formatBigInt
 src/app/settings/               signal-forms settings schema
 src/app/pages/                  index.page.ts (dashboard), settings.page.ts, instrument/[symbol].page.ts (Tailwind only, no SCSS)
-src/app/dashboard/              market-table, status-badge, producer-toggle components (own SCSS)
-src/app/instrument/             price-chart (Chart.js adapter in chart-js.ts), event-table components
+src/app/dashboard/              market-table/, status-badge/, producer-toggle/ (one folder per component, own SCSS)
+src/app/instrument/             price-chart/ (Chart.js adapter in chart-js.ts), event-table/
 src/testing/                    test fixtures (producer stub, fake worker)
 ```
 

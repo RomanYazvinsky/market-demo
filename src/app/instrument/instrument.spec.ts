@@ -2,8 +2,8 @@ import { DATE_PIPE_DEFAULT_OPTIONS } from '@angular/common';
 import { PLATFORM_ID } from '@angular/core';
 import { render, screen, within } from '@testing-library/angular';
 import type { PricePoint, TickerEvent } from '../producer/protocol';
-import { EventTable } from './event-table';
-import { PRICE_CHART_FACTORY, PriceChart, _toTimeSeries, toPriceSeries, type ChartCanvases, type PriceChartHandle, type PriceSeries } from './price-chart';
+import { EventTable } from './event-table/event-table';
+import { PRICE_CHART_FACTORY, PriceChart, _toTimeSeries, toPriceSeries, type ChartCanvases, type PriceChartHandle, type PriceSeries } from './price-chart/price-chart';
 
 const BUY: TickerEvent = {
   sequence: 2, timeMs: Date.UTC(2026, 9, 29, 12, 0, 5), priceCents: 10200, quantity: 30,
