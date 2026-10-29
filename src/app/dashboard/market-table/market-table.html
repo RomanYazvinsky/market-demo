@@ -31,7 +31,7 @@
       <td mat-cell *matCellDef="let row" class="num">{{ (row.spreadCents | cents | currency: 'USD') ?? '—' }}</td>
     </ng-container>
     <ng-container matColumnDef="volume">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="num">Volume</th>
+      <th mat-header-cell *matHeaderCellDef mat-sort-header arrowPosition="before" class="num">Volume (quantity)</th>
       <td mat-cell *matCellDef="let row" class="num">{{ row.volume | bigint }}</td>
     </ng-container>
     <ng-container matColumnDef="vwap">

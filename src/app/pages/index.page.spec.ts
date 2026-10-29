@@ -18,7 +18,7 @@ describe('DashboardPage', () => {
     producer.rows.set([ALFA, emptyRow('BETA')]);
     await render(DashboardPage, { providers });
     expect(screen.getAllByRole('columnheader').map((header) => header.textContent!.trim()))
-      .toEqual(['Symbol', 'Last price', 'Spread', 'Volume', 'VWAP', 'Imbalance']);
+      .toEqual(['Symbol', 'Last price', 'Spread', 'Volume (quantity)', 'VWAP', 'Imbalance']);
     expect(bodyRows().map(cellsOf)).toEqual([
       ['ALFA', '$102.00', '$0.04', '40', '$101.50', '0.20'],
       ['BETA', '—', '—', '0', '—', '—'],
