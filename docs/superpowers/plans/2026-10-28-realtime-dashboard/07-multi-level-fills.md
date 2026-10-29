@@ -126,9 +126,9 @@ W01–W22 and W25–W26 remain applicable. W09's initial one-share minimum remai
 
 **Interfaces:**
 - Keep `sharesFor`, `takerTrade`, `refresh`, `clampSpread`, `makerAdd` callable so current tests/generator remain green during this task.
-- Add `func (b *book) nextLevelPrice(c ModelConfig, s Side) int64` — preview the replacement hit price without mutation or randomness.
-- Add `func (b *book) fillAffordable(s Side, budgetCents int64) (priceCents, filled int64)` — `min(budget/price, levelQty)`; no one-share floor; subtract only filled shares.
-- Add `takerOrder` as specified above and `func (o *takerOrder) execute(b *book) (MarketUpdate, bool)` — execute at the current level, deduct actual cost, return a copied post-fill update with its instrument. False means no affordable execution and no state mutation. Level refresh is owned by Task 2.
+- Add `func (orderBook *book) nextLevelPrice(config ModelConfig, side Side) int64` — preview the replacement hit price without mutation or randomness.
+- Add `func (orderBook *book) fillAffordable(side Side, budgetCents int64) (priceCents, filled int64)` — `min(budget/price, levelQty)`; no one-share floor; subtract only filled shares.
+- Add `takerOrder` as specified above and `func (order *takerOrder) execute(orderBook *book) (MarketUpdate, bool)` — execute at the current level, deduct actual cost, return a copied post-fill update with its instrument. False means no affordable execution and no state mutation. Level refresh is owned by Task 2.
 
 - [ ] **Step 1: Write failing tests.** Use the example's book and money values; both sides must preserve the untouched side. Assert first execution 9 @ 10000, 110000 left, snapshot askQty 0. Refresh with depth 1000500 cents, execute again: 10 @ 10005, askQty 90, 9950 left. Verify the first snapshot is unchanged. For bid: start bid 10000 × 9 / ask 10001 × 600, budget 200000; after 9 @ 10000 refresh to 9995 × 100, then fill 11, leaving 55 cents and bidQty 89. Assert budgets 0 and price−1 return no execution/no mutation; exactly price buys one share. Cover previews at bid 1/ask 2 and an unchanged book after preview.
 - [ ] **Step 2: Run** `cd wasm && go test ./generator/ -run 'W29|W06_Refresh|W24_Refresh'`. Expected: new tests fail because helpers/types do not exist.
@@ -145,8 +145,8 @@ W01–W22 and W25–W26 remain applicable. W09's initial one-share minimum remai
 
 **Interfaces:**
 - Consume Task 1 primitives.
-- Add `func (g *Generator) startOrder()` — today's instrument/refresh/maker/side/budget sequence, normalizing the initial effective budget once. Called only when no order is active (`remainingCents == 0`).
-- Add `func (g *Generator) continueOrder() (MarketUpdate, bool)` — if the hit side has shares, execute there; if empty, preview affordability, refresh/clamp and execute. If unaffordable set `remainingCents = 0`, return false, and leave the book unchanged. After a fill set `remainingCents = 0` when the hit level remains nonempty; otherwise keep the order for the next slot's affordability check.
+- Add `func (generator *Generator) startOrder()` — today's instrument/refresh/maker/side/budget sequence, normalizing the initial effective budget once. Called only when no order is active (`remainingCents == 0`).
+- Add `func (generator *Generator) continueOrder() (MarketUpdate, bool)` — if the hit side has shares, execute there; if empty, preview affordability, refresh/clamp and execute. If unaffordable set `remainingCents = 0`, return false, and leave the book unchanged. After a fill set `remainingCents = 0` when the hit level remains nonempty; otherwise keep the order for the next slot's affordability check.
 - Keep `NextBatch(dst []MarketUpdate)` public signature. Implement the lazy loop from **Model and decisions → Lazy continuation**.
 
 - [ ] **Step 1: Write failing generator tests.** Seed active orders directly in package tests to isolate sweeps from random maker behavior. Use the example book with a fixed depth budget 1000500, gap 5 and spread cap 200. A batch of 1 returns execution 1 and keeps the order; the next call executes and returns execution 2 once. Compare with a two-slot batch from an identical fixture. Assert emitted snapshots remain unchanged by later book mutation (value copy). After the second fill the active order is cleared. A new order whose drawn budget is below its hit price executes one share only, never repeatedly floors its remainder (`TestW29_InitialBudgetFloorAppliedOnce`).
