@@ -105,4 +105,10 @@ describe('DashboardPage', () => {
     expect(bodyRows()).toHaveLength(1);
     expect(bodyRows()[0]).toHaveTextContent('No instruments match "zz"');
   });
+
+  test('U36 the symbol cell links to its instrument page', async ({ producer, providers }) => {
+    producer.rows.set([ALFA]);
+    await render(DashboardPage, { providers });
+    expect(screen.getByRole('link', { name: 'ALFA' })).toHaveAttribute('href', '/instrument/ALFA');
+  });
 });

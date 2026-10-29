@@ -8,3 +8,13 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+.symbol {
+  color: var(--mat-sys-primary);
+  font: var(--mat-sys-title-small);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

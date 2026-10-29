@@ -4,6 +4,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSortModule, type Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
+import { RouterLink } from '@angular/router';
 import type { MetricsRow } from '../producer/protocol';
 import { BigIntPipe } from '../shared/bigint.pipe';
 import { CentsPipe } from '../shared/cents.pipe';
@@ -21,7 +22,7 @@ type Column = keyof typeof SORT_KEYS;
 
 @Component({
   selector: 'app-market-table',
-  imports: [MatTableModule, MatSortModule, MatFormFieldModule, MatInputModule, CurrencyPipe, DecimalPipe, CentsPipe, BigIntPipe],
+  imports: [MatTableModule, RouterLink, MatSortModule, MatFormFieldModule, MatInputModule, CurrencyPipe, DecimalPipe, CentsPipe, BigIntPipe],
   host: { class: 'flex flex-col gap-3' },
   styleUrl: './market-table.scss',
   templateUrl: './market-table.html',

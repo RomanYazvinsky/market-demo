@@ -1,4 +1,5 @@
-import { type Provider, signal } from '@angular/core';
+import { type EnvironmentProviders, type Provider, signal } from '@angular/core';
+import { provideRouter } from '@angular/router';
 import { test as base } from 'vitest';
 import { ProducerService } from '../app/producer/producer.service';
 import { DEFAULT_SETTINGS, type MetricsRow, type ProducerStatus, type WatchedEvents } from '../app/producer/protocol';
@@ -21,9 +22,9 @@ export function createProducerStub() {
 export type ProducerStub = ReturnType<typeof createProducerStub>;
 
 /** `producer`: a stub ProducerService; `providers`: ready to pass to ATL `render`. */
-export const pageTest = base.extend<{ producer: ProducerStub; providers: Provider[] }>({
+export const pageTest = base.extend<{ producer: ProducerStub; providers: Array<Provider | EnvironmentProviders> }>({
   producer: async ({}, use) => use(createProducerStub()),
-  providers: async ({ producer }, use) => use([{ provide: ProducerService, useValue: producer }]),
+  providers: async ({ producer }, use) => use([{ provide: ProducerService, useValue: producer }, provideRouter([])]),
 });
 
 /** Fake Worker recording sent messages; `emit`/`crash` drive the main-thread side. */

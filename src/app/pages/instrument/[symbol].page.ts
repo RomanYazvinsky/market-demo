@@ -1,0 +1,37 @@
+import { Component, DestroyRef, computed, effect, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import type { RouteMeta } from '@analogjs/router';
+import { map } from 'rxjs';
+import { StatusBadge } from '../../dashboard/status-badge';
+import { EventTable } from '../../instrument/event-table';
+import { PriceChart } from '../../instrument/price-chart';
+import { EVENT_LOG_SIZE } from '../../producer/protocol';
+import { ProducerService } from '../../producer/producer.service';
+
+export const routeMeta: RouteMeta = { title: 'Instrument' };
+
+@Component({
+  selector: 'app-instrument-page',
+  imports: [RouterLink, StatusBadge, PriceChart, EventTable],
+  host: { class: 'block' },
+  templateUrl: './[symbol].page.html',
+})
+export default class InstrumentPage {
+  protected readonly producer = inject(ProducerService);
+  protected readonly eventLogSize = EVENT_LOG_SIZE;
+  /** The router reuses this page between symbols, so the symbol is a signal of the param. */
+  protected readonly symbol = toSignal(inject(ActivatedRoute).paramMap.pipe(map((params) => params.get('symbol') ?? '')), {
+    requireSync: true,
+  });
+  protected readonly inRun = computed(() => this.producer.rows().some((row) => row.symbol === this.symbol()));
+  protected readonly events = computed(() => {
+    const watched = this.producer.watched();
+    return watched?.symbol === this.symbol() ? watched.events : [];
+  });
+
+  constructor() {
+    effect(() => this.producer.watch(this.symbol()));
+    inject(DestroyRef).onDestroy(() => this.producer.watch(null));
+  }
+}
