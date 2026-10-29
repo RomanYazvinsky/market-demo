@@ -32,7 +32,8 @@
       </mat-error>
     </mat-form-field>
     <p class="text-hint m-0">Apply starts a new run and clears current totals.</p>
-    <div class="flex justify-end">
+    <div class="flex items-center justify-end gap-4">
+      <p class="text-success m-0" role="status">{{ applied() ? 'Settings applied' : '' }}</p>
       <button matButton="filled" type="submit" [disabled]="form().invalid()">Apply</button>
     </div>
   </form>

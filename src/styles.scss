@@ -37,6 +37,11 @@ h1 {
   color: var(--mat-sys-on-surface-variant);
 }
 
+// Material has no success role, so green is set here for both color schemes.
+.text-success {
+  color: light-dark(#1b7f3b, #6fdc8c);
+}
+
 // Skeleton placeholders for producer-driven content before the producer has started.
 // In the components layer, so Tailwind utilities (size, rounded-*) on the same element win.
 @mixin skeleton-shimmer {

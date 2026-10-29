@@ -45,6 +45,24 @@ describe('SettingsPage', () => {
     },
   );
 
+  test('U42 Apply shows a confirmation that disappears after 3 seconds', async ({ providers }) => {
+    vi.useFakeTimers();
+    try {
+      const { fixture } = await render(SettingsPage, { providers });
+      expect(screen.queryByText('Settings applied')).not.toBeInTheDocument();
+      await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).click(applyButton());
+      expect(screen.getByRole('status')).toHaveTextContent('Settings applied');
+      await vi.advanceTimersByTimeAsync(2_999);
+      fixture.detectChanges();
+      expect(screen.getByText('Settings applied')).toBeInTheDocument();
+      await vi.advanceTimersByTimeAsync(1);
+      fixture.detectChanges();
+      expect(screen.queryByText('Settings applied')).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test('U24 shows a readable error after the field is touched', async ({ providers }) => {
     await render(SettingsPage, { providers });
     await retype('Instrument count', '51');

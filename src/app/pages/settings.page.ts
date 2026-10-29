@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { FormField, submit } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -23,11 +23,20 @@ export default class SettingsPage {
   private readonly settingsForm = createSettingsForm(this.producer.settings());
   protected readonly model = this.settingsForm.model;
   protected readonly form = this.settingsForm.form;
+  protected readonly applied = signal(false);
+  private appliedTimer: ReturnType<typeof setTimeout> | undefined;
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => clearTimeout(this.appliedTimer));
+  }
 
   async submit(event: Event): Promise<void> {
     event.preventDefault();
     await submit(this.form, async () => {
       this.producer.apply(toSettings(this.model()));
+      this.applied.set(true);
+      clearTimeout(this.appliedTimer);
+      this.appliedTimer = setTimeout(() => this.applied.set(false), 3000);
     });
   }
 }
