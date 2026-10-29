@@ -260,7 +260,7 @@ func TestW35_SpreadReturnsAfterTheWait(test *testing.T) {
 	}
 	start := generator.books[0]
 	spread := start.ask - start.bid
-	generator.books[0].askQty = 0 // as if a buyer had swept the ask
+	generator.books[0].askQty = 0  // as if a buyer had swept the ask
 	updates := batch(generator, 5) // the move, then 4 updates of waiting; the 4th restores
 	for index, update := range updates[:4] {
 		if got := int64(update.AskCents) - int64(update.BidCents); got != spread+config.gap(start.ask) || int64(update.BidCents) != start.bid {

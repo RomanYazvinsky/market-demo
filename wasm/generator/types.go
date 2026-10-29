@@ -8,10 +8,6 @@ type AskCents int32
 type BidQuantity int32
 type AskQuantity int32
 
-type Settings struct {
-	Instruments map[Instrument]PriceCents
-}
-
 type MarketUpdate struct {
 	Instrument    Instrument
 	PriceCents    PriceCents

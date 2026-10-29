@@ -91,7 +91,7 @@ func TestW06_RefreshKeepsBidPositive(test *testing.T) {
 func TestW07_ClampSpreadPullsOtherSideIn(test *testing.T) {
 	config := DefaultModelConfig()
 	orderBook := book{bid: 10000, ask: 10100, bidQty: 1, askQty: 1} // spread 100¢ > cap(10100) = 20¢
-	orderBook.clampSpread(config, Ask)                                 // ask moved, so the bid follows
+	orderBook.clampSpread(config, Ask)                              // ask moved, so the bid follows
 	if orderBook.ask != 10100 || orderBook.bid != 10080 {
 		test.Fatalf("got bid %d ask %d, want 10080 / 10100", orderBook.bid, orderBook.ask)
 	}

@@ -25,7 +25,7 @@ func DefaultModelConfig() ModelConfig {
 		InitialSpreadBps: 5,
 		MaxSpreadBps:     20,
 		SweepChancePct:   10,
-		MinRestoreTicks: 1, MaxRestoreTicks: 20,
+		MinRestoreTicks:  1, MaxRestoreTicks: 20,
 	}
 }
 

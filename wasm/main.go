@@ -83,28 +83,51 @@ func initRun(_ js.Value, args []js.Value) (result any) {
 			result = fmt.Sprint("producer.init: invalid arguments: ", recovered)
 		}
 	}()
-	if len(args) != 4 {
-		return fmt.Sprintf("producer.init expects 4 arguments, got %d", len(args))
-	}
-	seed, instrumentCount, updatesPerBatch, dst := args[0].Int(), args[1].Int(), args[2].Int(), args[3]
-
-	if err := generator.ValidateBatchSize(updatesPerBatch); err != nil {
+	parsed, err := parseInitArgs(args)
+	if err != nil {
 		return err.Error()
 	}
-	minLength := updatesPerBatch * generator.FieldsPerUpdate
-	if !dst.InstanceOf(js.Global().Get("Int32Array")) || dst.Get("length").Int() < minLength {
-		return fmt.Sprintf("dst must be an Int32Array of at least %d elements", minLength)
-	}
-	created, err := generator.New(uint64(seed), instrumentCount, generator.DefaultModelConfig())
+	created, err := generator.New(parsed.seed, parsed.instrumentCount, generator.DefaultModelConfig())
 	if err != nil {
 		return err.Error()
 	}
 
 	runGenerator = created
-	updates = make([]generator.MarketUpdate, updatesPerBatch)
-	encoded = make([]byte, updatesPerBatch*generator.BytesPerUpdate)
-	batchView = js.Global().Get("Uint8Array").New(dst.Get("buffer"), dst.Get("byteOffset"), len(encoded))
+	updates = make([]generator.MarketUpdate, parsed.updatesPerBatch)
+	encoded = make([]byte, parsed.updatesPerBatch*generator.BytesPerUpdate)
+	batchView = js.Global().Get("Uint8Array").New(parsed.dst.Get("buffer"), parsed.dst.Get("byteOffset"), len(encoded))
 	return nil
+}
+
+// initArgs are the arguments of producer.init after validation.
+type initArgs struct {
+	seed            uint64
+	instrumentCount int
+	updatesPerBatch int
+	dst             js.Value
+}
+
+// parseInitArgs checks the argument count, the batch size and the output buffer. The instrument
+// count is checked by generator.New. Arguments of the wrong JS type make syscall/js panic,
+// which initRun recovers.
+func parseInitArgs(args []js.Value) (initArgs, error) {
+	if len(args) != 4 {
+		return initArgs{}, fmt.Errorf("producer.init expects 4 arguments, got %d", len(args))
+	}
+	parsed := initArgs{
+		seed:            uint64(args[0].Int()),
+		instrumentCount: args[1].Int(),
+		updatesPerBatch: args[2].Int(),
+		dst:             args[3],
+	}
+	if err := generator.ValidateBatchSize(parsed.updatesPerBatch); err != nil {
+		return initArgs{}, err
+	}
+	minLength := parsed.updatesPerBatch * generator.FieldsPerUpdate
+	if !parsed.dst.InstanceOf(js.Global().Get("Int32Array")) || parsed.dst.Get("length").Int() < minLength {
+		return initArgs{}, fmt.Errorf("dst must be an Int32Array of at least %d elements", minLength)
+	}
+	return parsed, nil
 }
 
 // nextBatch implements producer.nextBatch(): one batch into the bound Int32Array.
