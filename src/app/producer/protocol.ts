@@ -99,5 +99,4 @@ export type ToWorker =
 /** Worker -> UI. Every message carries the runId it belongs to; the UI drops other runs. */
 export type FromWorker =
   | { type: 'status'; runId: number; status: ProducerStatus; error?: string }
-  /** `elapsedMs`: the run's generating time, without paused intervals. */
-  | { type: 'snapshot'; runId: number; rows: MetricsRow[]; watched: WatchedEvents | null; elapsedMs: number };
+  | { type: 'snapshot'; runId: number; rows: MetricsRow[]; watched: WatchedEvents | null };

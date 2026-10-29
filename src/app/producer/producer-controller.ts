@@ -27,10 +27,6 @@ export class ProducerController {
   private history = new PriceHistory(0);
   /** Symbol shown by an instrument page; its events ride along with every snapshot. */
   private watchedSymbol: string | null = null;
-  /** Generating time of the run before the current running interval. */
-  private elapsedBeforeMs = 0;
-  /** Date.now() when the current running interval began; null while not running. */
-  private runningSinceMs: number | null = null;
   private batchTimer: ReturnType<typeof setTimeout> | undefined;
   private emitTimer: ReturnType<typeof setInterval> | undefined;
 
@@ -94,14 +90,12 @@ export class ProducerController {
     this.store = new MetricsStore(config.symbols);
     this.log = new EventLog(config.symbols.length);
     this.history = new PriceHistory(config.symbols.length);
-    this.elapsedBeforeMs = 0;
     this.state = 'running';
     this.startTimers();
     this.status('running');
   }
 
   private startTimers(): void {
-    this.runningSinceMs = Date.now();
     this.scheduleBatch();
     this.emitTimer = setInterval(() => this.emit(), this.deps.refreshMs);
   }
@@ -118,8 +112,6 @@ export class ProducerController {
   }
 
   private stopTimers(): void {
-    if (this.runningSinceMs !== null) this.elapsedBeforeMs += Date.now() - this.runningSinceMs;
-    this.runningSinceMs = null;
     clearTimeout(this.batchTimer);
     clearInterval(this.emitTimer);
     this.batchTimer = undefined;
@@ -127,8 +119,7 @@ export class ProducerController {
   }
 
   private emit(): void {
-    const elapsedMs = this.elapsedBeforeMs + (this.runningSinceMs === null ? 0 : Date.now() - this.runningSinceMs);
-    this.deps.post({ type: 'snapshot', runId: this.runId, rows: this.store.snapshot(), watched: this.watchedEvents(), elapsedMs });
+    this.deps.post({ type: 'snapshot', runId: this.runId, rows: this.store.snapshot(), watched: this.watchedEvents() });
   }
 
   private watchedEvents(): WatchedEvents | null {

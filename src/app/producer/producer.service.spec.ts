@@ -103,7 +103,7 @@ describe('ProducerService (started)', () => {
   test('U08 applies status and snapshots of the current run', async ({ svc, workers }) => {
     await loadAndStart(svc);
     workers[0].emit({ type: 'status', runId: 1, status: 'running' });
-    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5, 7n), elapsedMs: 0 });
+    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5, 7n) });
     expect(svc.status()).toBe('running');
     expect(svc.ready()).toBe(true);
     expect(svc.rows()).toEqual(rows(5, 7n));
@@ -111,7 +111,7 @@ describe('ProducerService (started)', () => {
 
   test('U09 U14 apply resets rows immediately and increments runId', async ({ svc, workers }) => {
     await loadAndStart(svc);
-    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5, 7n), elapsedMs: 0 });
+    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5, 7n) });
     const next = { ...DEFAULT_SETTINGS, instrumentCount: 3 };
     svc.apply(next);
     expect(svc.rows()).toEqual(rows(3));
@@ -133,7 +133,7 @@ describe('ProducerService (started)', () => {
     await loadAndStart(svc);
     svc.apply(DEFAULT_SETTINGS);
     svc.apply(DEFAULT_SETTINGS);
-    workers[0].emit({ type: 'snapshot', runId: 2, rows: rows(5, 9n), elapsedMs: 0 });
+    workers[0].emit({ type: 'snapshot', runId: 2, rows: rows(5, 9n) });
     workers[0].emit({ type: 'status', runId: 1, status: 'error', error: 'old' });
     expect(svc.rows()).toEqual(rows(5));
     expect(svc.status()).toBe('initializing');
@@ -166,17 +166,6 @@ describe('ProducerService (started)', () => {
     await loadAndStart(svc);
     TestBed.resetTestingModule();
     expect(workers[0].terminated).toBe(true);
-  });
-});
-
-describe('ProducerService (run time)', () => {
-  test('U46 follows the run time of snapshots and resets it on apply', async ({ svc, workers }) => {
-    expect(svc.elapsedMs()).toBe(0);
-    await loadAndStart(svc);
-    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: null, elapsedMs: 4000 });
-    expect(svc.elapsedMs()).toBe(4000);
-    svc.apply(DEFAULT_SETTINGS);
-    expect(svc.elapsedMs()).toBe(0);
   });
 });
 
@@ -214,22 +203,22 @@ describe('ProducerService (watch)', () => {
   test('U31 applies the watched events of snapshots', async ({ svc, workers }) => {
     await loadAndStart(svc);
     svc.watch('MSFT');
-    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT], seconds: [] }, elapsedMs: 0 });
+    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT], seconds: [] } });
     expect(svc.watched()).toEqual({ symbol: 'MSFT', events: [EVENT], seconds: [] });
   });
 
   test('U32 ignores events of a symbol that is no longer watched', async ({ svc, workers }) => {
     await loadAndStart(svc);
     svc.watch('AAPL');
-    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT], seconds: [] }, elapsedMs: 0 });
-    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: null, elapsedMs: 0 });
+    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT], seconds: [] } });
+    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: null });
     expect(svc.watched()).toEqual({ symbol: 'AAPL', events: [], seconds: [] });
   });
 
   test('U32 K31 apply clears the events and seconds and keeps the symbol', async ({ svc, workers }) => {
     await loadAndStart(svc);
     svc.watch('MSFT');
-    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT], seconds: [] }, elapsedMs: 0 });
+    workers[0].emit({ type: 'snapshot', runId: 1, rows: rows(5), watched: { symbol: 'MSFT', events: [EVENT], seconds: [] } });
     svc.apply(DEFAULT_SETTINGS);
     expect(svc.watched()).toEqual({ symbol: 'MSFT', events: [], seconds: [] });
   });

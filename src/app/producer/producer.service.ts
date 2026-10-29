@@ -54,7 +54,6 @@ export class ProducerService {
   private readonly _settings = signal<ProducerSettings>(DEFAULT_SETTINGS);
   private readonly _ready = signal(false);
   private readonly _watched = signal<WatchedEvents | null>(null);
-  private readonly _elapsedMs = signal(0);
   private readonly _names = signal<ReadonlyMap<string, string>>(new Map());
 
   readonly status = this._status.asReadonly();
@@ -65,8 +64,6 @@ export class ProducerService {
   readonly ready = this._ready.asReadonly();
   /** Latest events of the symbol passed to watch(); empty until the worker reports them. */
   readonly watched = this._watched.asReadonly();
-  /** Generating time of the current run (paused intervals excluded), as of the latest snapshot. */
-  readonly elapsedMs = this._elapsedMs.asReadonly();
   /** Company name per ticker, empty until the instrument list is loaded. */
   readonly names = this._names.asReadonly();
 
@@ -100,7 +97,6 @@ export class ProducerService {
     const config = this.symbols ? toProducerConfig(settings, this.symbols) : undefined;
     if (config) this._rows.set(config.symbols.map(emptyRow));
     this.clearWatchedEvents();
-    this._elapsedMs.set(0);
     this._status.set('initializing');
     this._error.set(null);
     if (config && this.channel) {
@@ -178,7 +174,6 @@ export class ProducerService {
       this._ready.set(true);
     } else {
       this._rows.set(message.rows);
-      this._elapsedMs.set(message.elapsedMs);
       // A snapshot posted before the worker saw the latest watch belongs to another symbol.
       if (message.watched && message.watched.symbol === this.watchedSymbol) this._watched.set(message.watched);
     }
