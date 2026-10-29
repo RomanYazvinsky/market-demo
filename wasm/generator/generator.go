@@ -57,15 +57,20 @@ func ValidateBatchSize(updatesPerBatch int) error {
 func (generator *Generator) InstrumentCount() int { return len(generator.books) }
 
 // NextBatch fills every element of dst in place, without allocating. The draw order per
-// update is fixed (instrument, depth, maker side, maker budget, taker side, sweep,
-// taker budget), so a seed always gives the same stream.
+// update is fixed (instrument, depth, restore ticks after a move or restore depth during a
+// wait, maker side, maker budget, taker side, sweep, taker budget), so a seed always gives
+// the same stream.
 func (generator *Generator) NextBatch(dst []MarketUpdate) {
 	config := generator.config
 	for index := range dst {
 		instrument := generator.random.IntN(len(generator.books)) // an instrument may repeat or be missing in a batch
 		orderBook := &generator.books[instrument]
+		spread := orderBook.ask - orderBook.bid
 		if moved, ok := orderBook.refresh(config, generator.uniformDepth()); ok {
 			orderBook.clampSpread(config, moved)
+			orderBook.noteMove(moved, spread, generator.uniform(config.MinRestoreTicks, config.MaxRestoreTicks))
+		} else if orderBook.restoreTicks > 0 {
+			orderBook.tickRestore(generator.uniformDepth())
 		}
 		orderBook.makerAdd(generator.side(), generator.uniformOrder())
 		takerSide := generator.side()

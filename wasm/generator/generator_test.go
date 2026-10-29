@@ -249,6 +249,30 @@ func TestW34_SweepRateFollowsConfig(test *testing.T) {
 	}
 }
 
+func TestW35_SpreadReturnsAfterTheWait(test *testing.T) {
+	config := DefaultModelConfig()
+	config.SweepChancePct = 0
+	config.MinDepthCents, config.MaxDepthCents = 1_000_000_000, 1_000_000_000 // no natural exhaustion
+	config.MinRestoreTicks, config.MaxRestoreTicks = 4, 4
+	generator, err := New(42, 1, config)
+	if err != nil {
+		test.Fatal(err)
+	}
+	start := generator.books[0]
+	spread := start.ask - start.bid
+	generator.books[0].askQty = 0 // as if a buyer had swept the ask
+	updates := batch(generator, 5) // the move, then 4 updates of waiting; the 4th restores
+	for index, update := range updates[:4] {
+		if got := int64(update.AskCents) - int64(update.BidCents); got != spread+config.gap(start.ask) || int64(update.BidCents) != start.bid {
+			test.Fatalf("update %d: spread %d bid %d, want the widened spread %d with the bid unchanged", index, got, update.BidCents, spread+config.gap(start.ask))
+		}
+	}
+	last := updates[4]
+	if int64(last.AskCents)-int64(last.BidCents) != spread || int64(last.AskCents) != start.ask+config.gap(start.ask) {
+		test.Fatalf("5th update %+v: want spread %d back with the ask kept at %d", last, spread, start.ask+config.gap(start.ask))
+	}
+}
+
 func TestW12_DeterministicForSeed(test *testing.T) {
 	if !slices.Equal(batch(newGenerator(test, 7, 5), 500), batch(newGenerator(test, 7, 5), 500)) {
 		test.Fatal("same seed produced different batches")

@@ -12,6 +12,11 @@ const (
 type book struct {
 	bid, ask       int64 // cents
 	bidQty, askQty int64 // shares
+	// After a level moves away, the other side follows it once restoreTicks more updates
+	// of this instrument have passed, bringing the spread back to restoreSpread.
+	restoreSpread int64
+	restoreTicks  int64 // 0 = nothing pending
+	lastMoved     Side
 }
 
 // bps returns basisPoints basis points of price, at least 1¢.
@@ -63,6 +68,38 @@ func (orderBook *book) clampSpread(config ModelConfig, moved Side) {
 	for orderBook.ask-orderBook.bid > config.spreadCap(orderBook.ask) {
 		orderBook.ask--
 	}
+}
+
+// noteMove records that side moved away from a spread of previousSpread. The first move
+// starts the wait of ticks updates and fixes the spread to return to; later moves during
+// the wait only change which side moved last.
+func (orderBook *book) noteMove(side Side, previousSpread, ticks int64) {
+	if orderBook.restoreTicks == 0 {
+		orderBook.restoreSpread = previousSpread
+		orderBook.restoreTicks = ticks
+	}
+	orderBook.lastMoved = side
+}
+
+// tickRestore counts one update of the wait. When it ends and the spread is still wider than
+// before the move, the side opposite the last move gets a new level of depthCents at the old
+// distance. It reports whether a level was placed.
+func (orderBook *book) tickRestore(depthCents int64) bool {
+	if orderBook.restoreTicks == 0 {
+		return false
+	}
+	orderBook.restoreTicks--
+	if orderBook.restoreTicks > 0 || orderBook.ask-orderBook.bid <= orderBook.restoreSpread {
+		return false
+	}
+	if orderBook.lastMoved == Ask {
+		orderBook.bid = orderBook.ask - orderBook.restoreSpread
+		orderBook.bidQty = sharesFor(depthCents, orderBook.bid)
+	} else {
+		orderBook.ask = orderBook.bid + orderBook.restoreSpread
+		orderBook.askQty = sharesFor(depthCents, orderBook.ask)
+	}
+	return true
 }
 
 // makerAdd adds budget/price shares to the best level on side.

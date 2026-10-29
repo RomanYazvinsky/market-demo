@@ -42,7 +42,7 @@ The module boundaries are typed contracts:
 
 - **Market model (Go, `wasm/generator`).** Each instrument has a one-level order book (best bid/ask and their shares). Per update:
   1. Pick an instrument uniformly at random. Gaps and repeats within a batch are allowed.
-  2. Replace an exhausted level one gap further out and clamp the spread.
+  2. Replace an exhausted level one gap further out and clamp the spread. The spread stays wider for 1–20 updates of that instrument; then the other side follows with a new level at the spread from before the move.
   3. A maker adds a dollar budget of shares at the best price.
   4. A taker spends a dollar budget at the best ask (buy) or bid (sell), filling `min(budget/price, shares at the level)`. That fill is the trade. With `SweepChancePct` (10%) the taker wants more than the level holds and empties it, so the level moves away at the next update: that is what moves prices.
 

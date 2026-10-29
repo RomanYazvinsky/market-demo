@@ -44,7 +44,7 @@ Plan: docs/superpowers/plans/2026-10-28-realtime-dashboard/
 
 # Decisions
 - **Wasm:** Go with the standard toolchain (`GOOS=js GOARCH=wasm`). Randomness and price logic run only in Go. The PRNG is seeded, so tests are deterministic.
-- **Market model:** order-driven, with a one-level book per instrument. Maker orders join the best level and taker orders take from it; each taker fill is the trade. With `SweepChancePct` a taker empties the level, which moves the price. Instruments are picked at random, so an instrument can miss a batch. All numbers live in Go `ModelConfig` (Go-side only).
+- **Market model:** order-driven, with a one-level book per instrument. Maker orders join the best level and taker orders take from it; each taker fill is the trade. With `SweepChancePct` a taker empties the level, which moves the price; 1–20 updates later the other side follows, so the spread returns to its previous value. Instruments are picked at random, so an instrument can miss a batch. All numbers live in Go `ModelConfig` (Go-side only).
 - **Transport:** `Int32Array`, 7 ints per update. There is one buffer per run, bound in `init`, and one bulk copy per batch. The Uint8Array byte view lives inside Go and is documented in `wasm-api.ts` and `main.go`.
 - **Metrics:** computed in the worker. Volume and Σ(price×qty) are BigInt. The UI only formats.
 - **Refresh:** one snapshot per `environment.uiRefreshMs` (1 s). It is pre-configured, not a user setting.

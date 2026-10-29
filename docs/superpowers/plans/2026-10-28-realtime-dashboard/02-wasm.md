@@ -23,6 +23,7 @@ type ModelConfig struct {
 	InitialSpreadBps                       int64 // starting spread                         (5; min 1¢)
 	MaxSpreadBps                           int64 // spread cap                              (20; min 1¢)
 	SweepChancePct                         int64 // chance a taker order is larger than the best level, so it empties it (10)
+	MinRestoreTicks, MaxRestoreTicks       int64 // updates until the other side follows a moved level (1 / 20)
 }
 
 func DefaultModelConfig() ModelConfig
@@ -61,6 +62,8 @@ func (b *book) refresh(c ModelConfig, depthCents int64) (moved Side, ok bool) //
 func (b *book) clampSpread(c ModelConfig, moved Side)                        // pull the other side in if spread > cap
 func (b *book) makerAdd(s Side, budgetCents int64)                           // add liquidity at the best level
 func (b *book) levelCents(s Side) int64                                      // money resting at the best level
+func (b *book) noteMove(s Side, previousSpread, ticks int64)                 // start (or extend) the wait after a move
+func (b *book) tickRestore(depthCents int64) bool                            // count down; place the following level
 func (b *book) takerTrade(s Side, budgetCents int64) (priceCents, filled int64) // take liquidity = the trade
 ```
 
@@ -101,6 +104,7 @@ Source column: **T** = TASK.md §3, **S** = design spec / author decision, **C**
 | W25 | Model numbers come from `ModelConfig`; invalid configs are rejected | S | `TestW25_DefaultConfigValid`, `TestW25_InvalidConfigRejected` | — (bridge always uses the defaults) |
 | W26 | A maker joining the best price adds `budget/price` shares to it | S | `TestW26_MakerJoinAddsShares` | — |
 | W34 | With `SweepChancePct` a taker's budget is the level's value plus a normal order, so it empties the level (the rest is cancelled); this is what moves prices. Replaced the maker's 1¢ improve (`ImproveChancePct`), whose thin levels moved quotes on 42% of updates | S | `TestW34_SweepBudgetEmptiesLevel`, `TestW34_EverySweepEmptiesTheTradedLevel`, `TestW34_SweepRateFollowsConfig` | — |
+| W35 | After a level moves away, the spread stays wide for N updates of that instrument (N uniform in `MinRestoreTicks`–`MaxRestoreTicks`, 1–20); then the side opposite the last move gets a new level (fresh depth) that returns the spread to its value before the first move. Moves during the wait keep that spread; the cap still applies | S | `TestW35_OppositeSideFollowsAfterTheWait`, `TestW35_BidMoveIsFollowedByTheAsk`, `TestW35_LaterMovesKeepTheFirstSpreadAndWait`, `TestW35_LastMovedSideDecidesWhoFollows`, `TestW35_NoRestoreWhenTheSpreadIsAlreadyNarrow`, `TestW35_SpreadReturnsAfterTheWait` | — |
 | W22 | Randomness and price logic run in Wasm, not TypeScript | T | — | — *Review check:* `grep -rnE "Math\.random\|crypto\.getRandomValues" src/app` may show only the seed in `producer.worker.ts`. |
 
 The Go invariant tests (W05–W10) run over one shared sample: seed 42, 5 instruments, 200 batches of 1000. It's computed once with `sync.OnceValue` so each requirement has its own focused test without regenerating the data.
@@ -554,7 +558,7 @@ func TestW15_EncodeDoesNotAllocate(t *testing.T) {
   - `New`: validate the count and config. For each instrument, draw `mid` uniform in [MinStartPrice, MaxStartPrice] and set `spread := cfg.bps(mid, InitialSpreadBps)`, `bid := max(1, mid − spread/2)`, `ask := bid + spread`. Each side gets `sharesFor(depth, price)`, with `depth` uniform in [MinDepth, MaxDepth].
   - `NextBatch`, for each `dst[k]`:
     1. Pick `i := rng.IntN(len(books))` uniformly. An instrument may repeat or be missing in a batch, by design.
-    2. Call `refresh(cfg, uniformDepth())`. If it moved a side, call `clampSpread(cfg, moved)`.
+    2. Call `refresh(cfg, uniformDepth())`. If it moved a side, call `clampSpread(cfg, moved)` and `noteMove(moved, spreadBefore, uniform(MinRestoreTicks, MaxRestoreTicks))`; otherwise, while a wait is pending, `tickRestore(uniformDepth())` (W35).
     3. A maker joins side `Bid`/`Ask` (coin flip) with budget `uniformOrder()`.
     4. A taker trades: a coin flip picks a buyer (side `Ask`) or seller (side `Bid`), `sweep := rng.Int64N(100) < SweepChancePct`, budget `uniformOrder()`, plus `levelCents(side)` on a sweep so the level is emptied. That gives `(price, filled)`.
     5. Write `dst[k] = {i, price, filled, bid, ask, bidQty, askQty}`. Quantities are after the fill, so a level can show 0. It moves at that instrument's next update (step 2), which keeps the price equal to that update's bid or ask (W08).

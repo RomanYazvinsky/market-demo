@@ -102,6 +102,65 @@ func TestW07_ClampSpreadPullsOtherSideIn(test *testing.T) {
 	}
 }
 
+func TestW35_OppositeSideFollowsAfterTheWait(test *testing.T) {
+	orderBook := book{bid: 10000, ask: 10025, bidQty: 5, askQty: 7} // a sweep moved the ask from 10020 up to 10025
+	orderBook.noteMove(Ask, 20, 2)
+	if orderBook.tickRestore(1_000_000) {
+		test.Fatal("restored after 1 of 2 ticks")
+	}
+	if !orderBook.tickRestore(1_000_000) { // a new bid level $10,000 deep, ask − previous spread
+		test.Fatal("did not restore after 2 ticks")
+	}
+	if orderBook.bid != 10005 || orderBook.bidQty != 99 || orderBook.ask != 10025 || orderBook.askQty != 7 {
+		test.Fatalf("got %+v, want bid 10005 × 99, ask 10025 × 7", orderBook)
+	}
+	if orderBook.tickRestore(1_000_000) {
+		test.Fatal("restored twice")
+	}
+}
+
+func TestW35_BidMoveIsFollowedByTheAsk(test *testing.T) {
+	orderBook := book{bid: 9995, ask: 10020, bidQty: 5, askQty: 7} // a sweep moved the bid from 10000 down to 9995
+	orderBook.noteMove(Bid, 20, 1)
+	orderBook.tickRestore(1_000_000)
+	if orderBook.bid != 9995 || orderBook.ask != 10015 || orderBook.askQty != 99 {
+		test.Fatalf("got %+v, want bid 9995, ask 10015 × 99", orderBook)
+	}
+}
+
+func TestW35_LaterMovesKeepTheFirstSpreadAndWait(test *testing.T) {
+	orderBook := book{bid: 10000, ask: 10025, bidQty: 5, askQty: 7}
+	orderBook.noteMove(Ask, 20, 2) // spread 20 before the first move
+	orderBook.tickRestore(1_000_000)
+	orderBook.ask = 10030
+	orderBook.noteMove(Ask, 25, 9) // a second sweep during the wait
+	if !orderBook.tickRestore(1_000_000) {
+		test.Fatal("a later move restarted the wait")
+	}
+	if orderBook.bid != 10010 || orderBook.ask != 10030 {
+		test.Fatalf("got bid %d ask %d, want 10010 / 10030 (back to the first spread)", orderBook.bid, orderBook.ask)
+	}
+}
+
+func TestW35_LastMovedSideDecidesWhoFollows(test *testing.T) {
+	orderBook := book{bid: 9995, ask: 10025, bidQty: 5, askQty: 7}
+	orderBook.noteMove(Ask, 20, 1)
+	orderBook.noteMove(Bid, 25, 5) // the bid moved last, so the ask follows it
+	orderBook.tickRestore(1_000_000)
+	if orderBook.bid != 9995 || orderBook.ask != 10015 {
+		test.Fatalf("got bid %d ask %d, want 9995 / 10015", orderBook.bid, orderBook.ask)
+	}
+}
+
+func TestW35_NoRestoreWhenTheSpreadIsAlreadyNarrow(test *testing.T) {
+	orderBook := book{bid: 10000, ask: 10020, bidQty: 5, askQty: 7} // the cap clamp already pulled the bid in
+	orderBook.noteMove(Ask, 20, 1)
+	orderBook.tickRestore(1_000_000)
+	if orderBook.bid != 10000 || orderBook.bidQty != 5 {
+		test.Fatalf("got %+v, want the bid level untouched", orderBook)
+	}
+}
+
 func TestW25_DefaultConfigValid(test *testing.T) {
 	if err := DefaultModelConfig().Validate(); err != nil {
 		test.Fatal(err)
@@ -118,6 +177,8 @@ func TestW25_InvalidConfigRejected(test *testing.T) {
 		"max spread below initial":   func(config *ModelConfig) { config.MaxSpreadBps = config.InitialSpreadBps - 1 },
 		"sweep chance above 100":     func(config *ModelConfig) { config.SweepChancePct = 101 },
 		"sweep chance negative":      func(config *ModelConfig) { config.SweepChancePct = -1 },
+		"zero restore ticks":         func(config *ModelConfig) { config.MinRestoreTicks = 0 },
+		"restore ticks reversed":     func(config *ModelConfig) { config.MinRestoreTicks, config.MaxRestoreTicks = 20, 1 },
 	}
 	for name, mutate := range cases {
 		config := DefaultModelConfig()

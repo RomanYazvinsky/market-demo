@@ -13,6 +13,7 @@ type ModelConfig struct {
 	InitialSpreadBps                       int64 // starting spread (min 1¢)
 	MaxSpreadBps                           int64 // spread cap (min 1¢)
 	SweepChancePct                         int64 // chance a taker order is larger than the best level, so it empties it
+	MinRestoreTicks, MaxRestoreTicks       int64 // updates of that instrument until the other side follows a moved level
 }
 
 func DefaultModelConfig() ModelConfig {
@@ -24,6 +25,7 @@ func DefaultModelConfig() ModelConfig {
 		InitialSpreadBps: 5,
 		MaxSpreadBps:     20,
 		SweepChancePct:   10,
+		MinRestoreTicks: 1, MaxRestoreTicks: 20,
 	}
 }
 
@@ -38,6 +40,7 @@ func (config ModelConfig) Validate() error {
 		{"StartPriceCents", config.MinStartPriceCents, config.MaxStartPriceCents},
 		{"OrderCents", config.MinOrderCents, config.MaxOrderCents},
 		{"DepthCents", config.MinDepthCents, config.MaxDepthCents},
+		{"RestoreTicks", config.MinRestoreTicks, config.MaxRestoreTicks},
 	}
 	for _, valueRange := range ranges {
 		if valueRange.min <= 0 {
