@@ -14,6 +14,8 @@ const instrumentRoutes = (JSON.parse(readFileSync('public/resources/sp500.json',
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // '/' locally; '/<repo>/' for GitHub Pages (BASE_PATH is set by .github/workflows/pages.yml).
+  base: process.env['BASE_PATH'] ?? '/',
   build: {
     target: ['es2020'],
   },
