@@ -202,6 +202,27 @@ describe('ProducerController', () => {
     expect(out.snapshots.at(-1)!.watched!.seconds).toEqual([]);
   });
 
+  test('K33 snapshots carry the run time, which stops while paused', async ({ controller, clock, out }) => {
+    await apply(controller, 1);
+    clock.advanceTimersByTime(2000);
+    expect(out.snapshots.at(-1)!.elapsedMs).toBe(2000);
+    clock.advanceTimersByTime(500);
+    await controller.handle({ type: 'pause', runId: 1 });
+    expect(out.snapshots.at(-1)!.elapsedMs).toBe(2500);
+    clock.advanceTimersByTime(5000);
+    await controller.handle({ type: 'resume', runId: 1 });
+    clock.advanceTimersByTime(1000);
+    expect(out.snapshots.at(-1)!.elapsedMs).toBe(3500);
+  });
+
+  test('K33 apply restarts the run time', async ({ controller, clock, out }) => {
+    await apply(controller, 1);
+    clock.advanceTimersByTime(3000);
+    await apply(controller, 2);
+    clock.advanceTimersByTime(1000);
+    expect(out.snapshots.at(-1)).toMatchObject({ runId: 2, elapsedMs: 1000 });
+  });
+
   test('K20 dispose stops all timers', async ({ controller, clock, wasm, out }) => {
     await apply(controller, 1);
     controller.dispose();
