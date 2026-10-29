@@ -4,7 +4,7 @@ import { defineConfig } from 'vite';
 import analog from '@analogjs/platform';
 import tailwindcss from '@tailwindcss/vite';
 import { readFileSync } from 'node:fs';
-import { SETTINGS_LIMITS } from './src/app/producer/protocol';
+import { SETTINGS_LIMITS } from './src/app/producer/protocol.ts';
 
 // Every instrument of the largest possible run gets a prerendered page, so deep links work on static hosting.
 const instrumentRoutes = (JSON.parse(readFileSync('public/resources/sp500.json', 'utf8')) as Array<{ symbol: string }>)
