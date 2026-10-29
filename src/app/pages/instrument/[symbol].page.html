@@ -4,14 +4,12 @@
 
   @if (producer.ready()) {
     <div class="flex flex-wrap items-center gap-6">
-      <app-status-badge [status]="producer.status()" [error]="producer.error()" />
       @if (row(); as row) {
         <p class="m-0" aria-label="Current spread">
           <span class="text-hint">Spread</span>
           {{ (row.spreadCents | cents | currency: 'USD') ?? '—' }}
         </p>
       }
-      <app-producer-toggle class="ml-auto" />
     </div>
     @if (inRun()) {
       <mat-button-toggle-group class="self-start" aria-label="Chart window" [value]="chartWindow()" (change)="chartWindow.set($event.value)">
@@ -30,7 +28,6 @@
     }
   } @else {
     <div class="flex flex-col gap-4" aria-busy="true" aria-label="Loading instrument data">
-      <div class="skeleton h-7 w-32 rounded-full"></div>
       <div class="skeleton h-80"></div>
       <div class="skeleton h-48"></div>
     </div>

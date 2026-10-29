@@ -32,6 +32,7 @@ ProducerService (root, one per app)      ProducerController                 gene
            watched                         EventLog (last 100 per instrument),
                                            PriceHistory (1 point/s, last 5 min)
   drops messages of older runIds <── snapshot every 1 s (+ watched symbol's events) ──
+Toolbar status bar: status, run time, Start/Pause/Resume, settings link
 Pages: / dashboard, /settings, /instrument/:symbol (prerendered; skeleton until the producer runs)
 ```
 
@@ -61,7 +62,7 @@ The module boundaries are typed contracts:
   - The producer is loaded after the first render (`afterNextRender`) but no run starts until **Start** is pressed (or Apply, which also starts a run); until then the status is Idle. The worker chunk is loaded with a dynamic `import('./producer.worker?worker')`, so bootstrap never waits for it.
   - Instruments are the S&P 500 constituents in `public/resources/sp500.json` (`{ symbol, name }`, from Wikipedia's list, 2026-10-29). The tickers are sliced to *Instrument count* and sent to the worker in every `apply`; the names only label them in the UI, as "Nvidia (NVDA)".
   - Each run has a `runId`. The UI resets its rows immediately on Apply and ignores late messages from older runs.
-- **Instrument page (`/instrument/:symbol`).** Linked from the symbol in the table. Start/Pause/Resume, the current spread, Chart.js graphs (trade price with stepped bid and ask, and a spread chart below it; loaded lazily, browser only) with a Live / 60 s / 5 min window toggle and the event log, newest first. The pages of the first 50 symbols are prerendered so deep links work on static hosting.
+- **Instrument page (`/instrument/:symbol`).** Linked from the symbol in the table. The current spread, Chart.js graphs (trade price with stepped bid and ask, and a spread chart below it; loaded lazily, browser only) with a Live / 60 s / 5 min window toggle and the event log, newest first. The pages of the first 50 symbols are prerendered so deep links work on static hosting.
 - **Refresh rate.** The worker posts one snapshot per `environment.uiRefreshMs` (1000 ms) whatever the generation rate. Every generated trade is still counted.
 
 ### Wasm → worker memory model
@@ -85,7 +86,8 @@ src/app/producer/               protocol, wasm contract, worker (controller, met
 src/app/shared/                 cents and bigint pipes, formatBigInt
 src/app/settings/               signal-forms settings schema
 src/app/pages/                  index.page.ts (dashboard), settings.page.ts, instrument/[symbol].page.ts (Tailwind only, no SCSS)
-src/app/dashboard/              market-table/, status-badge/, producer-toggle/ (one folder per component, own SCSS)
+src/app/shell/                  status-bar/, status-badge/, producer-toggle/ (toolbar; one folder per component, own SCSS)
+src/app/dashboard/              market-table/
 src/app/instrument/             price-chart/ (Chart.js adapter in chart-js.ts), event-table/
 src/testing/                    test fixtures (producer stub, fake worker)
 ```

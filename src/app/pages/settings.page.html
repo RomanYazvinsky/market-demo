@@ -1,6 +1,13 @@
-<section class="flex max-w-md flex-col gap-4">
-  <h1>Producer settings</h1>
-  <form class="flex flex-col gap-2" (submit)="submit($event)" novalidate>
+<section class="mx-auto flex w-full max-w-md flex-col gap-4">
+  <header class="flex items-center gap-2">
+    <button matIconButton type="button" aria-label="Back" title="Back" (click)="back()">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="currentColor">
+        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+      </svg>
+    </button>
+    <h1>Producer settings</h1>
+  </header>
+  <form class="flex flex-col gap-3" (submit)="submit($event)" novalidate>
     <mat-form-field>
       <mat-label>Instrument count</mat-label>
       <input matInput type="number" step="1" [formField]="form.instrumentCount" />
@@ -31,10 +38,10 @@
         }
       </mat-error>
     </mat-form-field>
-    <p class="text-hint m-0">Apply starts a new run and clears current totals.</p>
-    <div class="flex items-center justify-end gap-4">
-      <p class="text-success m-0" role="status">{{ applied() ? 'Settings applied' : '' }}</p>
+    <p class="text-hint m-0 text-center">Apply starts a new run and clears current totals.</p>
+    <div class="flex flex-col items-center gap-2">
       <button matButton="filled" type="submit" [disabled]="form().invalid()">Apply</button>
+      <p class="text-success m-0 min-h-5" role="status">{{ applied() ? 'Settings applied' : '' }}</p>
     </div>
   </form>
 </section>

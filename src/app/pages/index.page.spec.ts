@@ -24,42 +24,11 @@ describe('DashboardPage', () => {
     ]);
   });
 
-  test('U20 pauses when running', async ({ producer, providers }) => {
-    await render(DashboardPage, { providers });
-    await userEvent.click(screen.getByRole('button', { name: 'Pause' }));
-    expect(producer.pause).toHaveBeenCalledTimes(1);
-  });
-
-  test('U20 resumes when paused', async ({ producer, providers }) => {
-    producer.status.set('paused');
-    await render(DashboardPage, { providers });
-    await userEvent.click(screen.getByRole('button', { name: 'Resume' }));
-    expect(producer.resume).toHaveBeenCalledTimes(1);
-  });
-
-  test.for(['initializing', 'error'] as const)('U20 disables the toggle while %s', async (status, { producer, providers }) => {
-    producer.status.set(status);
-    await render(DashboardPage, { providers });
-    expect(screen.getByRole('button', { name: /pause|resume/i })).toBeDisabled();
-  });
-
-  test('U44 before the first run shows Idle, the instrument rows and a Start button', async ({ producer, providers }) => {
+  test('U44 before the first run lists the instruments with empty values', async ({ producer, providers }) => {
     producer.status.set('idle');
     producer.rows.set([emptyRow('ALFA')]);
     await render(DashboardPage, { providers });
-    expect(screen.getByRole('status')).toHaveTextContent(/idle/i);
-    expect(symbols()).toEqual(['ALFA']);
-    await userEvent.click(screen.getByRole('button', { name: 'Start' }));
-    expect(producer.start).toHaveBeenCalledTimes(1);
-    expect(producer.pause).not.toHaveBeenCalled();
-  });
-
-  test('U12 U21 shows status and error text', async ({ producer, providers }) => {
-    producer.status.set('error');
-    producer.error.set('Failed to load /producer.wasm: HTTP 404');
-    await render(DashboardPage, { providers });
-    expect(screen.getByRole('status')).toHaveTextContent(/error/i);
-    expect(screen.getByRole('status')).toHaveTextContent('HTTP 404');
+    expect(bodyRows().map(cellsOf)).toEqual([['ALFA', '—', '—', '0', '—', '—']]);
   });
 
   test('U22 shows a skeleton until the producer has started, heading always', async ({ producer, providers }) => {
@@ -68,7 +37,6 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('heading', { name: 'Market dashboard' })).toBeInTheDocument();
     expect(screen.getByLabelText('Loading market data')).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /pause|resume/i })).not.toBeInTheDocument();
   });
 
   test('U29 sorts by a column ascending, then descending, then back to list order', async ({ producer, providers }) => {

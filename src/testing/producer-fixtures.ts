@@ -13,6 +13,7 @@ export function createProducerStub() {
     ready: signal(true),
     watched: signal<WatchedEvents | null>(null),
     names: signal<ReadonlyMap<string, string>>(new Map()),
+    elapsedMs: signal(0),
     load: vi.fn(async () => {}),
     start: vi.fn(),
     apply: vi.fn(),

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/angular';
 import userEvent, { PointerEventsCheckLevel } from '@testing-library/user-event';
+import { Router } from '@angular/router';
 import { pageTest as test } from '../../testing/producer-fixtures';
 import { DEFAULT_SETTINGS } from '../producer/protocol';
 import SettingsPage from './settings.page';
@@ -61,6 +62,14 @@ describe('SettingsPage', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  test('U47 Back without earlier history goes to the dashboard', async ({ providers }) => {
+    const { fixture } = await render(SettingsPage, { providers });
+    const router = fixture.debugElement.injector.get(Router);
+    const navigate = vi.spyOn(router, 'navigateByUrl');
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(navigate).toHaveBeenCalledWith('/');
   });
 
   test('U24 shows a readable error after the field is touched', async ({ providers }) => {
