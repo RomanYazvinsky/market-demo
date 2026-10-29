@@ -1,5 +1,6 @@
+import { EventLog } from './event-log';
 import { MetricsStore } from './metrics';
-import { FIELDS_PER_UPDATE, type FromWorker, type ProducerConfig, type ToWorker } from './protocol';
+import { FIELDS_PER_UPDATE, type FromWorker, type ProducerConfig, type ToWorker, type WatchedEvents } from './protocol';
 import type { WasmProducer } from './wasm-api';
 
 export interface ProducerControllerDeps {
@@ -21,6 +22,9 @@ export class ProducerController {
   /** The run's only batch buffer, bound to wasm in init and overwritten by every nextBatch(). */
   private ints = new Int32Array(0);
   private store = new MetricsStore([]);
+  private log = new EventLog(0);
+  /** Symbol shown by an instrument page; its events ride along with every snapshot. */
+  private watchedSymbol: string | null = null;
   private batchTimer: ReturnType<typeof setTimeout> | undefined;
   private emitTimer: ReturnType<typeof setInterval> | undefined;
 
@@ -44,6 +48,10 @@ export class ProducerController {
         this.state = 'running';
         this.startTimers();
         this.status('running');
+        return;
+      case 'watch':
+        this.watchedSymbol = message.symbol;
+        if (this.state === 'running' || this.state === 'paused') this.emit();
         return;
     }
   }
@@ -78,6 +86,7 @@ export class ProducerController {
     this.config = config;
     this.ints = ints;
     this.store = new MetricsStore(config.symbols);
+    this.log = new EventLog(config.symbols.length);
     this.state = 'running';
     this.startTimers();
     this.status('running');
@@ -92,6 +101,7 @@ export class ProducerController {
     this.batchTimer = setTimeout(() => {
       this.wasm!.nextBatch();
       this.store.add(this.ints, this.config!.updatesPerBatch);
+      this.log.add(this.ints, this.config!.updatesPerBatch, Date.now());
       this.scheduleBatch();
     }, this.config!.batchIntervalMs);
   }
@@ -104,7 +114,13 @@ export class ProducerController {
   }
 
   private emit(): void {
-    this.deps.post({ type: 'snapshot', runId: this.runId, rows: this.store.snapshot(), watched: null });
+    this.deps.post({ type: 'snapshot', runId: this.runId, rows: this.store.snapshot(), watched: this.watchedEvents() });
+  }
+
+  private watchedEvents(): WatchedEvents | null {
+    if (this.watchedSymbol === null) return null;
+    const instrument = this.config!.symbols.indexOf(this.watchedSymbol);
+    return { symbol: this.watchedSymbol, events: instrument === -1 ? [] : this.log.events(instrument) };
   }
 
   private status(status: 'initializing' | 'running' | 'paused'): void {

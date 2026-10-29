@@ -118,6 +118,72 @@ describe('ProducerController', () => {
     expect(wasm.batches).toBe(1);
   });
 
+  test('K28 snapshots carry no events while nothing is watched', async ({ controller, clock, out }) => {
+    await apply(controller, 1);
+    clock.advanceTimersByTime(1000);
+    expect(out.snapshots[0].watched).toBeNull();
+  });
+
+  test('K28 snapshots carry the watched symbol\'s events', async ({ controller, clock, out }) => {
+    await controller.handle({ type: 'watch', symbol: 'MSFT' });
+    await apply(controller, 1);
+    const startMs = Date.now();
+    clock.advanceTimersByTime(1000);
+    const watched = out.snapshots.at(-1)!.watched!;
+    expect(watched.symbol).toBe('MSFT');
+    // FakeWasm alternates instruments, so MSFT (index 1) gets every second update of the run.
+    expect(watched.events.map((event) => event.sequence)).toEqual([2, 4, 6, 8, 10, 12, 14, 16, 18, 20]);
+    expect(watched.events.map((event) => event.timeMs - startMs)).toEqual([...Array(5).fill(400), ...Array(5).fill(800)]);
+  });
+
+  test('K25 K28 the watched log holds at most 100 events', async ({ controller, clock, out }) => {
+    await controller.handle({ type: 'watch', symbol: 'AAPL' });
+    await apply(controller, 1);
+    clock.advanceTimersByTime(20_000); // 50 batches × 5 AAPL updates
+    expect(out.snapshots.at(-1)!.watched!.events).toHaveLength(100);
+  });
+
+  test('K28 watched symbol outside the run has no events', async ({ controller, clock, out }) => {
+    await controller.handle({ type: 'watch', symbol: 'TSLA' });
+    await apply(controller, 1);
+    clock.advanceTimersByTime(1000);
+    expect(out.snapshots.at(-1)!.watched).toEqual({ symbol: 'TSLA', events: [] });
+  });
+
+  test('K29 watch while paused posts a snapshot at once', async ({ controller, clock, out }) => {
+    await apply(controller, 1);
+    clock.advanceTimersByTime(900);
+    await controller.handle({ type: 'pause', runId: 1 });
+    await controller.handle({ type: 'watch', symbol: 'AAPL' });
+    expect(out.last).toMatchObject({ type: 'snapshot', runId: 1, watched: { symbol: 'AAPL' } });
+    expect(out.snapshots.at(-1)!.watched!.events).toHaveLength(10);
+  });
+
+  test('K29 watch while running posts a snapshot at once; null stops the events', async ({ controller, out }) => {
+    await apply(controller, 1);
+    await controller.handle({ type: 'watch', symbol: 'AAPL' });
+    expect(out.last).toMatchObject({ type: 'snapshot', watched: { symbol: 'AAPL', events: [] } });
+    await controller.handle({ type: 'watch', symbol: null });
+    expect(out.last).toMatchObject({ type: 'snapshot', watched: null });
+  });
+
+  test('K29 watch before any apply posts nothing', async ({ controller, out }) => {
+    await controller.handle({ type: 'watch', symbol: 'AAPL' });
+    expect(out.messages).toEqual([]);
+  });
+
+  test('K27 apply clears the event log; watching survives apply', async ({ controller, clock, out }) => {
+    await controller.handle({ type: 'watch', symbol: 'AAPL' });
+    await apply(controller, 1);
+    clock.advanceTimersByTime(1000);
+    await apply(controller, 2);
+    clock.advanceTimersByTime(1000);
+    const watched = out.snapshots.at(-1)!.watched!;
+    expect(out.snapshots.at(-1)!.runId).toBe(2);
+    expect(watched.symbol).toBe('AAPL');
+    expect(watched.events.map((event) => event.sequence)).toEqual([1, 3, 5, 7, 9, 11, 13, 15, 17, 19]);
+  });
+
   test('K20 dispose stops all timers', async ({ controller, clock, wasm, out }) => {
     await apply(controller, 1);
     controller.dispose();
