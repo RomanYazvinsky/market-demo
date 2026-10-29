@@ -1,6 +1,7 @@
 import type { EnvironmentProviders, Provider } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, type ParamMap } from '@angular/router';
 import { render, screen } from '@testing-library/angular';
+import userEvent from '@testing-library/user-event';
 import { BehaviorSubject } from 'rxjs';
 import { pageTest as test } from '../../../testing/producer-fixtures';
 import { PRICE_CHART_FACTORY } from '../../instrument/price-chart';
@@ -79,5 +80,16 @@ describe('InstrumentPage', () => {
     producer.rows.set([emptyRow('AAPL')]);
     await renderPage(providers);
     expect(screen.getByLabelText('Current spread')).toHaveTextContent('—');
+  });
+
+  test('U39 pauses and resumes from the instrument page', async ({ producer, providers }) => {
+    producer.rows.set([emptyRow('AAPL')]);
+    const { fixture } = await renderPage(providers);
+    await userEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    expect(producer.pause).toHaveBeenCalledTimes(1);
+    producer.status.set('paused');
+    await fixture.whenStable();
+    await userEvent.click(screen.getByRole('button', { name: 'Resume' }));
+    expect(producer.resume).toHaveBeenCalledTimes(1);
   });
 });

@@ -6,9 +6,7 @@
   @if (producer.started()) {
     <div class="flex flex-wrap items-center justify-between gap-4">
       <app-status-badge [status]="producer.status()" [error]="producer.error()" />
-      <button matButton="tonal" type="button" [disabled]="!canToggle()" (click)="toggle()">
-        {{ producer.status() === 'paused' ? 'Resume' : 'Pause' }}
-      </button>
+      <app-producer-toggle />
     </div>
 
     <app-market-table [rows]="producer.rows()" />

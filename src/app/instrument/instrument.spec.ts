@@ -3,7 +3,7 @@ import { PLATFORM_ID } from '@angular/core';
 import { render, screen, within } from '@testing-library/angular';
 import type { TickerEvent } from '../producer/protocol';
 import { EventTable } from './event-table';
-import { PRICE_CHART_FACTORY, PriceChart, toPriceSeries, type PriceChartHandle, type PriceSeries } from './price-chart';
+import { PRICE_CHART_FACTORY, PriceChart, toPriceSeries, type ChartCanvases, type PriceChartHandle, type PriceSeries } from './price-chart';
 
 const BUY: TickerEvent = {
   sequence: 2, timeMs: Date.UTC(2026, 9, 29, 12, 0, 5), priceCents: 10200, quantity: 30,
@@ -29,9 +29,9 @@ describe('toPriceSeries', () => {
 describe('PriceChart', () => {
   const setup = async (platform = 'browser') => {
     const charts: FakeChart[] = [];
-    const canvases: HTMLCanvasElement[] = [];
-    const factory = async (canvas: HTMLCanvasElement) => {
-      canvases.push(canvas);
+    const canvases: ChartCanvases[] = [];
+    const factory = async (chartCanvases: ChartCanvases) => {
+      canvases.push(chartCanvases);
       const chart = new FakeChart();
       charts.push(chart);
       return chart;
@@ -44,9 +44,9 @@ describe('PriceChart', () => {
     return { ...view, charts, canvases };
   };
 
-  it('U34 creates the chart after render and updates it with new events', async () => {
+  it('U34 U38 creates the price and spread charts after render and updates them with new events', async () => {
     const { charts, canvases, fixture } = await setup();
-    expect(canvases).toEqual([screen.getByLabelText('Price chart')]);
+    expect(canvases).toEqual([{ price: screen.getByLabelText('Price chart'), spread: screen.getByLabelText('Spread chart') }]);
     expect(charts[0].updates.at(-1)!.sequences).toEqual([2]);
     fixture.componentRef.setInput('events', [BUY, SELL]);
     await fixture.whenStable();

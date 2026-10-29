@@ -1,0 +1,3 @@
+<button matButton="tonal" type="button" [disabled]="!canToggle()" (click)="toggle()">
+  {{ producer.status() === 'paused' ? 'Resume' : 'Pause' }}
+</button>

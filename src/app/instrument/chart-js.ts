@@ -1,7 +1,7 @@
-import { Chart, Legend, LineController, LineElement, LinearScale, PointElement, Tooltip, type ChartDataset } from 'chart.js';
-import type { PriceChartHandle, PriceSeries } from './price-chart';
+import { Chart, Filler, Legend, LineController, LineElement, LinearScale, PointElement, Tooltip, type ChartDataset } from 'chart.js';
+import type { ChartCanvases, PriceChartHandle, PriceSeries } from './price-chart';
 
-Chart.register(LineController, LineElement, PointElement, LinearScale, Tooltip, Legend);
+Chart.register(LineController, LineElement, PointElement, LinearScale, Tooltip, Legend, Filler);
 
 type Point = { x: number; y: number };
 
@@ -15,8 +15,10 @@ function themeColor(canvas: HTMLCanvasElement, token: string): string {
 
 const dollars = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
-export function createPriceChart(canvas: HTMLCanvasElement): PriceChartHandle {
-  const line = (label: string, token: string, extra: Partial<ChartDataset<'line', Point[]>>): ChartDataset<'line', Point[]> => ({
+type LineChart = Chart<'line', Point[]>;
+
+function line(canvas: HTMLCanvasElement, label: string, token: string, extra: Partial<ChartDataset<'line', Point[]>>): ChartDataset<'line', Point[]> {
+  return {
     label,
     data: [],
     borderColor: themeColor(canvas, token),
@@ -24,17 +26,13 @@ export function createPriceChart(canvas: HTMLCanvasElement): PriceChartHandle {
     borderWidth: 1,
     pointRadius: 0,
     ...extra,
-  });
-  const chart = new Chart<'line', Point[]>(canvas, {
+  };
+}
+
+function lineChart(canvas: HTMLCanvasElement, datasets: ChartDataset<'line', Point[]>[], xTitle: boolean, beginAtZero: boolean): LineChart {
+  return new Chart<'line', Point[]>(canvas, {
     type: 'line',
-    data: {
-      datasets: [
-        line('Trade', '--mat-sys-on-surface', { showLine: false, pointRadius: 2 }),
-        line('Bid', '--mat-sys-primary', { stepped: 'after' }),
-        line('Ask', '--mat-sys-error', { stepped: 'after' }),
-        line('Spread', '--mat-sys-outline', { stepped: 'after', borderDash: [4, 3], yAxisID: 'spread' }),
-      ],
-    },
+    data: { datasets },
     options: {
       animation: false,
       maintainAspectRatio: false,
@@ -42,33 +40,51 @@ export function createPriceChart(canvas: HTMLCanvasElement): PriceChartHandle {
       interaction: { mode: 'nearest', axis: 'x', intersect: false },
       color: themeColor(canvas, '--mat-sys-on-surface'),
       scales: {
-        x: { type: 'linear', ticks: { precision: 0 }, title: { display: true, text: 'Event #' } },
-        y: { type: 'linear', ticks: { callback: (value) => dollars.format(Number(value)) } },
-        spread: {
-          type: 'linear',
-          position: 'right',
-          beginAtZero: true,
-          grid: { drawOnChartArea: false },
-          title: { display: true, text: 'Spread' },
-          ticks: { callback: (value) => dollars.format(Number(value)) },
-        },
+        x: { type: 'linear', ticks: { precision: 0 }, title: { display: xTitle, text: 'Event #' } },
+        // Same width on both charts, so their x axes line up.
+        y: { type: 'linear', beginAtZero, afterFit: (scale) => void (scale.width = 72), ticks: { callback: (value) => dollars.format(Number(value)) } },
       },
       plugins: {
         tooltip: { callbacks: { label: (item) => `${item.dataset.label}: ${dollars.format(item.parsed.y ?? 0)}` } },
       },
     },
   });
+}
+
+/** A price chart (trade, bid, ask) and a spread chart below it, sharing the event range. */
+export function createPriceCharts(canvases: ChartCanvases): PriceChartHandle {
+  const priceChart = lineChart(
+    canvases.price,
+    [
+      line(canvases.price, 'Trade', '--mat-sys-on-surface', { showLine: false, pointRadius: 2 }),
+      line(canvases.price, 'Bid', '--mat-sys-primary', { stepped: 'after' }),
+      line(canvases.price, 'Ask', '--mat-sys-error', { stepped: 'after' }),
+    ],
+    false,
+    false,
+  );
+  const spreadChart = lineChart(
+    canvases.spread,
+    [line(canvases.spread, 'Spread', '--mat-sys-tertiary', { stepped: 'after', fill: 'origin', backgroundColor: themeColor(canvases.spread, '--mat-sys-tertiary-container') })],
+    true,
+    true,
+  );
   return {
     update(series: PriceSeries) {
       const points = (values: number[]) => values.map((value, index) => ({ x: series.sequences[index], y: value }));
-      chart.data.datasets[0].data = points(series.prices);
-      chart.data.datasets[1].data = points(series.bids);
-      chart.data.datasets[2].data = points(series.asks);
-      chart.data.datasets[3].data = points(series.spreads);
-      chart.options.scales!['x']!.min = series.sequences.at(0);
-      chart.options.scales!['x']!.max = series.sequences.at(-1);
-      chart.update('none');
+      priceChart.data.datasets[0].data = points(series.prices);
+      priceChart.data.datasets[1].data = points(series.bids);
+      priceChart.data.datasets[2].data = points(series.asks);
+      spreadChart.data.datasets[0].data = points(series.spreads);
+      for (const chart of [priceChart, spreadChart]) {
+        chart.options.scales!['x']!.min = series.sequences.at(0);
+        chart.options.scales!['x']!.max = series.sequences.at(-1);
+        chart.update('none');
+      }
     },
-    destroy: () => chart.destroy(),
+    destroy() {
+      priceChart.destroy();
+      spreadChart.destroy();
+    },
   };
 }

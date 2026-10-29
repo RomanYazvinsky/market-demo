@@ -23,15 +23,20 @@ export interface PriceSeries {
   spreads: number[];
 }
 
+export interface ChartCanvases {
+  price: HTMLCanvasElement;
+  spread: HTMLCanvasElement;
+}
+
 export interface PriceChartHandle {
   update(series: PriceSeries): void;
   destroy(): void;
 }
 
-/** Creates the chart on a canvas. Default: Chart.js, imported lazily so it stays out of the main bundle. */
-export const PRICE_CHART_FACTORY = new InjectionToken<(canvas: HTMLCanvasElement) => Promise<PriceChartHandle>>('PRICE_CHART_FACTORY', {
+/** Creates the price and spread charts. Default: Chart.js, imported lazily so it stays out of the main bundle. */
+export const PRICE_CHART_FACTORY = new InjectionToken<(canvases: ChartCanvases) => Promise<PriceChartHandle>>('PRICE_CHART_FACTORY', {
   providedIn: 'root',
-  factory: () => (canvas) => import('./chart-js').then((chartModule) => chartModule.createPriceChart(canvas)),
+  factory: () => (canvases) => import('./chart-js').then((chartModule) => chartModule.createPriceCharts(canvases)),
 });
 
 export function toPriceSeries(events: TickerEvent[]): PriceSeries {
@@ -51,7 +56,8 @@ export function toPriceSeries(events: TickerEvent[]): PriceSeries {
 })
 export class PriceChart {
   readonly events = input.required<TickerEvent[]>();
-  private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
+  private readonly priceCanvas = viewChild.required<ElementRef<HTMLCanvasElement>>('priceCanvas');
+  private readonly spreadCanvas = viewChild.required<ElementRef<HTMLCanvasElement>>('spreadCanvas');
   private readonly createChart = inject(PRICE_CHART_FACTORY);
   private readonly chart = signal<PriceChartHandle | null>(null);
 
@@ -63,7 +69,8 @@ export class PriceChart {
     });
     if (isPlatformBrowser(inject(PLATFORM_ID))) {
       afterNextRender(() => {
-        void this.createChart(this.canvas().nativeElement).then((chart) => {
+        const canvases = { price: this.priceCanvas().nativeElement, spread: this.spreadCanvas().nativeElement };
+        void this.createChart(canvases).then((chart) => {
           if (destroyed) chart.destroy();
           else this.chart.set(chart);
         });

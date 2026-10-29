@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import type { RouteMeta } from '@analogjs/router';
 import { map } from 'rxjs';
+import { ProducerToggle } from '../../dashboard/producer-toggle';
 import { StatusBadge } from '../../dashboard/status-badge';
 import { EventTable } from '../../instrument/event-table';
 import { PriceChart } from '../../instrument/price-chart';
@@ -15,7 +16,7 @@ export const routeMeta: RouteMeta = { title: 'Instrument' };
 
 @Component({
   selector: 'app-instrument-page',
-  imports: [RouterLink, CurrencyPipe, CentsPipe, StatusBadge, PriceChart, EventTable],
+  imports: [RouterLink, CurrencyPipe, CentsPipe, ProducerToggle, StatusBadge, PriceChart, EventTable],
   host: { class: 'block' },
   templateUrl: './[symbol].page.html',
 })

@@ -11,6 +11,7 @@
           {{ (row.spreadCents | cents | currency: 'USD') ?? '—' }}
         </p>
       }
+      <app-producer-toggle class="ml-auto" />
     </div>
     @if (inRun()) {
       <app-price-chart [events]="events()" />
