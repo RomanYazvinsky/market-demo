@@ -1,3 +1,4 @@
+import { errorMessage } from '../shared/error-message';
 import { EventLog } from './event-log';
 import { MetricsStore } from './metrics';
 import { PriceHistory } from './price-history';
@@ -72,13 +73,19 @@ export class ProducerController {
     try {
       wasm = await this.deps.wasm;
     } catch (error) {
-      if (runId === this.runId) this.fail(errorText(error));
+      if (runId === this.runId) this.fail(errorMessage(error));
       return;
     }
     if (runId !== this.runId) return;
 
     const ints = new Int32Array(config.updatesPerBatch * FIELDS_PER_UPDATE);
-    const error = wasm.init({ seed: this.deps.seed(), instrumentCount: config.symbols.length, updatesPerBatch: config.updatesPerBatch }, ints);
+    let error: string | null;
+    try {
+      error = wasm.init({ seed: this.deps.seed(), instrumentCount: config.symbols.length, updatesPerBatch: config.updatesPerBatch }, ints);
+    } catch (thrown) {
+      // E.g. "Go program has already exited": the worker entry drops handle()'s promise, so a throw here would leave the UI initializing.
+      error = errorMessage(thrown);
+    }
     if (error !== null) {
       this.fail(error);
       return;
@@ -137,8 +144,4 @@ export class ProducerController {
     this.state = 'error';
     this.deps.post({ type: 'status', runId: this.runId, status: 'error', error });
   }
-}
-
-function errorText(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

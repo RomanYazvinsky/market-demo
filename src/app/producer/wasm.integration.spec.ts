@@ -116,4 +116,18 @@ describe('compiled producer.wasm', () => {
     producer.nextBatch();
     expect(ints[FIELD.price]).toBeGreaterThan(0);
   });
+
+  it('W19 an init that fails while binding dst keeps the previous run', () => {
+    const ints = run(9, 5, 10);
+    // Passes the type and length checks, but creating the Uint8Array view over it throws (RangeError).
+    class OutOfRangeOffset extends Int32Array {
+      override get byteOffset(): number {
+        return this.buffer.byteLength + 4;
+      }
+    }
+    expect(producer.init({ seed: 9, instrumentCount: 50, updatesPerBatch: 20 }, new OutOfRangeOffset(20 * FIELDS_PER_UPDATE))).toMatch(/invalid arguments/);
+    producer.nextBatch();
+    const instruments = Array.from({ length: 10 }, (_, index) => update(ints, index)[FIELD.instrument]);
+    expect(instruments.every((instrument) => instrument >= 0 && instrument < 5)).toBe(true);
+  });
 });

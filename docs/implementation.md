@@ -100,7 +100,7 @@ Each instrument has a **one-level order book**: best bid and best ask, with the 
 4. **Maker:** a random side gets `budget / price` more shares at its best price [W26].
 5. **Taker:** a random side is hit. A buyer takes from the ask, a seller from the bid [W08]. It fills `min(budget / price, shares at the level)` and the rest is cancelled [W23]. A budget smaller than the price still buys one share [W09].
    - **Sweep:** with `SweepChancePct` (10%) the budget is the whole level's value plus a normal order, so the level is emptied [W27]. That is the only thing that moves prices.
-6. **Emit** `[instrument, tradePrice, filled, bid, ask, bidQty, askQty]`. The quantities are after the fill, so an emptied level shows 0 (imbalance ±1.00). It moves at that instrument's next update (step 2), which keeps the trade price equal to this update's bid or ask. Quantities saturate at `int32` max for the wire format.
+6. **Emit** `[instrument, tradePrice, filled, bid, ask, bidQty, askQty]`. The quantities are after the fill, so an emptied level shows 0 (imbalance ±1.00). It moves at that instrument's next update (step 2), which keeps the trade price equal to this update's bid or ask. Quantities saturate at `int32` max for the wire format. Prices are not saturated: the book keeps them as `int64` and they are cast to `int32` on the wire, so a price that random-walks above $21,474,836.47 (2³¹ − 1 cents) would wrap to a negative value. Starting at $10–$500 and moving 5 bps per exhausted level, that needs tens of thousands of net upward moves of one instrument, far beyond a realistic run, so it is a documented limit rather than handled.
 
 Measured behaviour with one instrument over 100k updates: the spread is 4.6 / 9.3 / 18.6 bps at p10 / median / p90, bid or ask changes on 15% of updates, and one side shows 0 shares on 10.5%.
 
@@ -177,15 +177,17 @@ Every failure ends as a readable `error` status with text, shown in the status b
 | Layer | Failure | Handling |
 |---|---|---|
 | Settings form | Non-integer, empty or out-of-range value | Readable field error; Apply is disabled [U17, U18, U20] |
-| Go `init` | Bad settings, bad config object, bad output buffer | Returns an error string instead of panicking (a `recover` also catches `syscall/js` panics from wrong argument types). A rejected `init` keeps the previous run [W03, W04, W18, W19, W21] |
+| Go `init` | Bad settings, bad config object, bad output buffer | Returns an error string instead of panicking (a `recover` also catches `syscall/js` panics from wrong argument types). Everything that can fail runs before the run state is replaced, so a rejected `init` keeps the previous run [W03, W04, W18, W19, W21] |
 | Go `nextBatch` | Called before a successful `init` | No-op [W22] |
 | Wasm loader | Big-endian platform, HTTP error, invalid binary, module never registers the API | Rejects with `Failed to load <url>: HTTP 404`, `Failed to start <url>: …` and so on [K21, K22] |
-| Worker controller | Loader rejected or `init` returned an error | Posts `status: 'error'` with the text and starts no timers [K18] |
+| Wasm loader | Host serves `.wasm` without `application/wasm` | Falls back from `instantiateStreaming` to `instantiate(arrayBuffer)` [K33] |
+| Worker controller | Loader rejected, `init` returned an error or threw (e.g. the Go runtime exited) | Posts `status: 'error'` with the text and starts no timers [K18] |
 | Worker controller | Messages for an older run; an older Apply still waiting for Wasm | Ignored [K19] |
 | `ProducerService` | Instrument list fails to load | Error status; a worker that was already created is terminated [U07] |
 | `ProducerService` | Worker chunk fails to load, or the worker crashes (`error` / `messageerror`) | Error status; the dead channel is dropped, and the next Apply loads a new worker [U07, U24] |
 | `ProducerService` | Messages from an older `runId` | Dropped [U05] |
 | `ProducerService` | App destroyed (also while loading) | Worker terminated, timers stopped [U08, K20] |
+| Status bar | Any error status | The run control turns into **Retry**: reload when no run was started yet, otherwise restart the run [U49] |
 
 ## Instrument (chart) page
 

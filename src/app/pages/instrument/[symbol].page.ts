@@ -13,7 +13,7 @@ import { chartsEnabledGuard } from '../../settings/display-settings';
 import { CentsPipe } from '../../shared/cents.pipe';
 import { instrumentLabel } from '../../shared/instrument-label';
 
-export const routeMeta: RouteMeta = { title: 'Instrument', canActivate: [chartsEnabledGuard] };
+export const routeMeta = { title: 'Instrument', canActivate: [chartsEnabledGuard] } satisfies RouteMeta;
 
 @Component({
   selector: 'app-instrument-page',

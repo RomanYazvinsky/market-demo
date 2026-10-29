@@ -1,3 +1,4 @@
+import { errorMessage } from '../shared/error-message';
 import './wasm_exec.js';
 import type { WasmProducer } from './wasm-api';
 
@@ -26,9 +27,13 @@ export async function loadWasmProducer(wasmUrl: string, deps: LoaderDeps = defau
   const go = new Go();
   let instance: WebAssembly.Instance;
   try {
-    ({ instance } = await WebAssembly.instantiateStreaming(Promise.resolve(response), go.importObject));
+    // instantiateStreaming accepts only application/wasm; some hosts serve .wasm as application/octet-stream.
+    const servedAsWasm = response.headers.get('content-type')?.split(';')[0].trim() === 'application/wasm';
+    ({ instance } = servedAsWasm
+      ? await WebAssembly.instantiateStreaming(Promise.resolve(response), go.importObject)
+      : await WebAssembly.instantiate(await response.arrayBuffer(), go.importObject));
   } catch (cause) {
-    throw new Error(`Failed to start ${wasmUrl}: ${cause instanceof Error ? cause.message : String(cause)}`);
+    throw new Error(`Failed to start ${wasmUrl}: ${errorMessage(cause)}`);
   }
   void go.run(instance);
   await Promise.resolve();

@@ -31,6 +31,19 @@ describe('loadWasmProducer', () => {
     run.mockRestore();
   });
 
+  test('K33 loads a module served without the application/wasm MIME type', async ({ deps }) => {
+    // Some hosts send .wasm as application/octet-stream, which instantiateStreaming rejects.
+    const emptyModule = new Response(new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]), {
+      headers: { 'content-type': 'application/octet-stream' },
+    });
+    const run = vi.spyOn(Go.prototype, 'run').mockResolvedValue(undefined);
+    await expect(loadWasmProducer('/producer.wasm', { ...deps, fetch: async () => emptyModule })).rejects.toThrow(
+      'producer.wasm did not register the producer API',
+    );
+    expect(run).toHaveBeenCalledTimes(1);
+    run.mockRestore();
+  });
+
   test('K22 rejects a big-endian platform before fetching', async ({ deps }) => {
     await expect(loadWasmProducer('/producer.wasm', { ...deps, littleEndian: false })).rejects.toThrow(
       'Big-endian platforms are not supported',

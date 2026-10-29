@@ -5,7 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatTooltipModule, type MatTooltip } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import type { RouteMeta } from '@analogjs/router';
 import { ProducerService } from '../producer/producer.service';
@@ -13,7 +13,7 @@ import { SETTINGS_LIMITS } from '../producer/protocol';
 import { DisplaySettings } from '../settings/display-settings';
 import { createSettingsForm, toSettings } from '../settings/settings-form';
 
-export const routeMeta: RouteMeta = { title: 'Settings' };
+export const routeMeta = { title: 'Settings' } satisfies RouteMeta;
 
 @Component({
   selector: 'app-settings-page',
@@ -36,6 +36,16 @@ export default class SettingsPage {
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.appliedTimer));
+  }
+
+  /** Whether the (?) tooltip was opened by a click (it also opens on hover). */
+  private aboutOpenedByClick = false;
+
+  /** A click opens the (?) tooltip (touch screens have no hover), the next click closes it. */
+  protected toggleAbout(tooltip: MatTooltip): void {
+    this.aboutOpenedByClick = !this.aboutOpenedByClick;
+    if (this.aboutOpenedByClick) tooltip.show();
+    else tooltip.hide();
   }
 
   /** The previous page of this app, or the dashboard when settings was opened directly. */

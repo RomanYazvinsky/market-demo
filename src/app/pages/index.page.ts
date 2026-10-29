@@ -4,7 +4,7 @@ import { MarketTable } from '../dashboard/market-table/market-table';
 import { ProducerService } from '../producer/producer.service';
 import { DisplaySettings } from '../settings/display-settings';
 
-export const routeMeta: RouteMeta = { title: 'Dashboard' };
+export const routeMeta = { title: 'Dashboard' } satisfies RouteMeta;
 
 @Component({
   selector: 'app-dashboard-page',

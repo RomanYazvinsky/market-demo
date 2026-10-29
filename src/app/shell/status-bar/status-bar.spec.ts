@@ -31,10 +31,17 @@ describe('StatusBar', () => {
     expect(producer.resume).toHaveBeenCalledTimes(1);
   });
 
-  test.for(['initializing', 'error'] as const)('U15 disables the toggle while %s', async (status, { producer, providers }) => {
-    producer.status.set(status);
+  test('U15 disables the toggle while initializing', async ({ producer, providers }) => {
+    producer.status.set('initializing');
     await render(StatusBar, { providers });
     expect(screen.getByRole('button', { name: /pause|resume/i })).toBeDisabled();
+  });
+
+  test('U49 after an error the control offers Retry', async ({ producer, providers }) => {
+    producer.status.set('error');
+    await render(StatusBar, { providers });
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(producer.retry).toHaveBeenCalledTimes(1);
   });
 
   test('U33 before the first run shows Idle and a Start button', async ({ producer, providers }) => {

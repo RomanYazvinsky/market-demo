@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/angular';
+import { fireEvent, render, screen, waitFor } from '@testing-library/angular';
 import userEvent, { PointerEventsCheckLevel } from '@testing-library/user-event';
 import { Router } from '@angular/router';
 import { pageTest as test } from '../../testing/producer-fixtures';
@@ -81,6 +81,19 @@ describe('SettingsPage', () => {
     await userEvent.click(toggle);
     expect(fixture.debugElement.injector.get(DisplaySettings).showCharts()).toBe(true);
     expect(producer.apply).not.toHaveBeenCalled();
+  });
+
+  test('U48 clicking (?) shows the tooltip, another click closes it', async ({ providers }) => {
+    const { fixture } = await render(SettingsPage, { providers });
+    const about = screen.getByRole('button', { name: 'About Show charts' });
+    const tooltip = () => screen.queryByText('Allows to open a chart for each instrument', { selector: '.mat-mdc-tooltip *' });
+    // Bare clicks without hover (as on touch screens): userEvent.click would also hover, which shows it anyway.
+    fireEvent.click(about);
+    await fixture.whenStable();
+    await waitFor(() => expect(tooltip()).toBeVisible());
+    fireEvent.click(about);
+    await fixture.whenStable();
+    await waitFor(() => expect(tooltip()).not.toBeInTheDocument());
   });
 
   test('U18 shows a readable error after the field is touched', async ({ providers }) => {

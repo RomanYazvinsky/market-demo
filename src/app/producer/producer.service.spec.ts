@@ -299,9 +299,27 @@ describe('ProducerService (recovery after a failed start)', () => {
     expect(svc.error()).toBeNull();
     workers.slice(0, -1).forEach((worker) => expect(worker.terminated).toBe(true));
   });
+  test('U49 retry after a failed load loads again without starting a run', async ({ svc, workers }) => {
+    await svc.load();
+    expect(svc.status()).toBe('error');
+    svc.retry();
+    expect(svc.status()).toBe('initializing');
+    expect(svc.error()).toBeNull();
+    await svc.load();
+    expect(svc.status()).toBe('idle');
+    expect(workers.at(-1)!.sent).toEqual([]);
+  });
 });
 
 describe('ProducerService (recovery after a worker crash)', () => {
+  test('U49 retry after a failed run restarts it with the current settings', async ({ svc, workers }) => {
+    await loadAndStart(svc);
+    workers[0].emit({ type: 'status', runId: 1, status: 'error', error: 'boom' });
+    svc.retry();
+    expect(workers[0].sent.at(-1)).toEqual({ type: 'apply', runId: 2, config: configFor(DEFAULT_SETTINGS) });
+    expect(svc.status()).toBe('initializing');
+  });
+
   test('U07 apply after a worker crash replaces the dead worker', async ({ svc, workers }) => {
     await loadAndStart(svc);
     workers[0].crash('boom');

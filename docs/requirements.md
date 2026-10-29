@@ -118,6 +118,7 @@ Generator tests use fixed seeds and timing tests use Vitest fake timers, so no t
 | ID | Requirement | Why |
 | --- | --- | --- |
 | K32 | A long run at the largest settings keeps memory flat: JS heap growth < 2 MB and no Wasm memory growth over 5 million updates | Wasm memory grew to ~26 MB on long runs (see implementation.md, Go GC issue); this guards the fix. |
+| K33 | The loader also loads a module served without the `application/wasm` MIME type | Some hosts serve `.wasm` as `application/octet-stream`, which `instantiateStreaming` rejects; found in review. |
 
 ## 3. UI (`src/app/`)
 
@@ -139,7 +140,7 @@ Generator tests use fixed seeds and timing tests use Vitest fake timers, so no t
 | U12 | Volume is shown with grouped digits, including bigint values |
 | U13 | Unavailable values are shown as `—`, and volume as 0, before data |
 | U14 | The dashboard has one row per instrument with the five metrics |
-| U15 | A Start / Pause / Resume control, disabled while initializing or failed |
+| U15 | A Start / Pause / Resume control (Retry after an error, see U49), disabled while initializing |
 | U16 | A basic producer status is shown |
 | U17 | Settings must be integers within their ranges |
 | U18 | Validation errors are readable |
@@ -188,6 +189,7 @@ Generator tests use fixed seeds and timing tests use Vitest fake timers, so no t
 | U46 | The charts have a Live window (the last 100 events, x = event #) and 60 s / 5 min windows of one point per second (x = clock time), ending at the newest point | The Live window covers only a fraction of a second on a busy ticker; time windows show the trend. |
 | U47 | A Live / 60 s / 5 min toggle (default Live) switches both charts | Switch between event detail and the trend. |
 | U48 | "Show charts" (settings toggle) is off by default and applies at once; a route guard sends the instrument page to the dashboard while it is off, and table symbols are plain text | The page is a debugging tool, not part of the task, so the default UI stays within the task. |
+| U49 | After an error the run control offers Retry: it reloads when no run was started yet, otherwise it restarts the run with the current settings | A failed load or run otherwise left only a disabled button, and the retry was reachable only through Apply on the settings page; found in review. |
 
 ## 4. Shared contracts
 

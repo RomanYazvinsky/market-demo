@@ -102,10 +102,15 @@ func initRun(_ js.Value, args []js.Value) (result any) {
 		return err.Error()
 	}
 
+	// Everything that can fail (Uint8Array.New panics on a bad buffer) happens before the run
+	// state is replaced, so a rejected init leaves the previous run untouched (W19).
+	createdEncoded := make([]byte, parsed.updatesPerBatch*generator.BytesPerUpdate)
+	createdView := js.Global().Get("Uint8Array").New(parsed.dst.Get("buffer"), parsed.dst.Get("byteOffset"), len(createdEncoded))
+
 	runGenerator = created
 	updates = make([]generator.MarketUpdate, parsed.updatesPerBatch)
-	encoded = make([]byte, parsed.updatesPerBatch*generator.BytesPerUpdate)
-	batchView = js.Global().Get("Uint8Array").New(parsed.dst.Get("buffer"), parsed.dst.Get("byteOffset"), len(encoded))
+	encoded = createdEncoded
+	batchView = createdView
 	return nil
 }
 

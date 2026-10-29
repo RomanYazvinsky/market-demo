@@ -4,6 +4,7 @@ import { DestroyRef, Injectable, InjectionToken, PLATFORM_ID, inject, signal } f
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter, firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { errorMessage } from '../shared/error-message';
 import {
   DEFAULT_SETTINGS,
   emptyRow,
@@ -37,8 +38,6 @@ export const INSTRUMENT_SYMBOLS_LOADER = new InjectionToken<() => Promise<readon
     return () => firstValueFrom(http.get<Instrument[]>(environment.symbolsUrl));
   },
 });
-
-const messageOf = (reason: unknown) => (reason instanceof Error ? reason.message : String(reason));
 
 /** Owns the single producer worker for the whole app; pages only read its signals. */
 @Injectable({ providedIn: 'root' })
@@ -100,6 +99,17 @@ export class ProducerService {
     this.apply(this._settings());
   }
 
+  /** The Retry button after an error: reload when no run was started yet, otherwise restart the run. */
+  retry(): void {
+    if (this.runId > 0) {
+      this.apply(this._settings());
+      return;
+    }
+    this._status.set('initializing');
+    this._error.set(null);
+    void this.load();
+  }
+
   apply(settings: ProducerSettings): void {
     this.runId++;
     this._settings.set(settings);
@@ -139,10 +149,10 @@ export class ProducerService {
     const [symbols, worker] = await Promise.allSettled([this.loadSymbols(), this.loadWorker()]);
     if (symbols.status === 'rejected') {
       if (worker.status === 'fulfilled') worker.value.terminate();
-      return this.fail(`Failed to load instrument list: ${messageOf(symbols.reason)}`);
+      return this.fail(`Failed to load instrument list: ${errorMessage(symbols.reason)}`);
     }
     if (worker.status === 'rejected') {
-      return this.fail(`Failed to start producer: ${messageOf(worker.reason)}`);
+      return this.fail(`Failed to start producer: ${errorMessage(worker.reason)}`);
     }
     if (this.destroyed) {
       worker.value.terminate();
@@ -163,7 +173,7 @@ export class ProducerService {
           // The crashed worker's stream is dead: drop it so the next Apply starts a new one.
           channel.terminate();
           this.channel = undefined;
-          this.fail((err instanceof Error && err.message) || 'Producer worker failed');
+          this.fail(errorMessage(err) || 'Producer worker failed');
         },
       });
     this.channel = channel;

@@ -109,6 +109,16 @@ describe('ProducerController', () => {
     expect(wasm.batches).toBe(0);
   });
 
+  test('K18 an exception from wasm init becomes an error status', async ({ controller, clock, wasm, out }) => {
+    vi.spyOn(wasm, 'init').mockImplementation(() => {
+      throw new Error('Go program has already exited');
+    });
+    await expect(apply(controller, 1)).resolves.toBeUndefined();
+    expect(out.last).toEqual({ type: 'status', runId: 1, status: 'error', error: 'Go program has already exited' });
+    clock.advanceTimersByTime(5000);
+    expect(wasm.batches).toBe(0);
+  });
+
   test('K19 ignores pause and resume for a stale runId', async ({ controller, clock, wasm, out }) => {
     await apply(controller, 1);
     await apply(controller, 2);
