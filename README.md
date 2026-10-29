@@ -28,9 +28,10 @@ Angular (main thread)                    Web Worker                         Go W
 ---------------------                    ----------                         -------
 ProducerService (root, one per app)      ProducerController                 generator + one-level order books
   rxWorker()  ── apply/pause/resume ──>    run lifecycle, timers   ── init(seed, n, k, Int32Array) ──>
-  signals: status, rows, settings          MetricsStore (BigInt)   ── nextBatch() ──> fills Int32Array
-  drops messages of older runIds <── snapshot every 1 s ──
-Pages: / dashboard, /settings (prerendered; skeleton until the producer runs)
+  signals: status, rows, settings,         MetricsStore (BigInt),  ── nextBatch() ──> fills Int32Array
+           watched                         EventLog (last 100 per instrument)
+  drops messages of older runIds <── snapshot every 1 s (+ watched symbol's events) ──
+Pages: / dashboard, /settings, /instrument/:symbol (prerendered; skeleton until the producer runs)
 ```
 
 The module boundaries are typed contracts:
@@ -53,11 +54,13 @@ The module boundaries are typed contracts:
   - VWAP = Σ(price × qty) / Σ qty;
   - imbalance = (bidQty − askQty) / (bidQty + askQty).
 
-  Volume and Σ(price × qty) are `bigint`, so totals stay exact on long runs. A zero denominator gives `null`, which is shown as `—`. No event history is kept.
+  Volume and Σ(price × qty) are `bigint`, so totals stay exact on long runs. A zero denominator gives `null`, which is shown as `—`.
+- **Event log (worker, `event-log.ts`).** The last 100 updates per instrument in fixed-size typed-array ring buffers (bounded, nothing allocated per update), each with a run-wide sequence number and its batch time. Only the symbol an instrument page watches (`{ type: 'watch', symbol }`) is sent, with every snapshot.
 - **UI (`ProducerService`).** It's a root service, so navigation never creates a second producer.
   - The producer is started after the first render (`afterNextRender`). The worker chunk is loaded with a dynamic `import('./producer.worker?worker')`, so bootstrap never waits for it.
   - Instruments are the S&P 500 tickers in `public/resources/sp500.json` (from Wikipedia, 2026-10-28), sliced to *Instrument count* and sent to the worker in every `apply`.
   - Each run has a `runId`. The UI resets its rows immediately on Apply and ignores late messages from older runs.
+- **Instrument page (`/instrument/:symbol`).** Linked from the symbol in the table. A Chart.js graph (trade price, stepped bid and ask; loaded lazily, browser only) and the event log, newest first. The pages of the first 50 symbols are prerendered so deep links work on static hosting.
 - **Refresh rate.** The worker posts one snapshot per `environment.uiRefreshMs` (1000 ms) whatever the generation rate. Every generated trade is still counted.
 
 ### Wasm → worker memory model
@@ -79,8 +82,9 @@ src/environments/environment.ts the only reader of import.meta (base URL, wasm U
 src/app/producer/               protocol, wasm contract, worker (controller, metrics, loader), service, rxWorker
 src/app/shared/                 cents and bigint pipes, formatBigInt
 src/app/settings/               signal-forms settings schema
-src/app/pages/                  index.page.ts (dashboard), settings.page.ts (Tailwind only, no SCSS)
+src/app/pages/                  index.page.ts (dashboard), settings.page.ts, instrument/[symbol].page.ts (Tailwind only, no SCSS)
 src/app/dashboard/              market-table, status-badge components (own SCSS)
+src/app/instrument/             price-chart (Chart.js adapter in chart-js.ts), event-table components
 src/testing/                    test fixtures (producer stub, fake worker)
 ```
 

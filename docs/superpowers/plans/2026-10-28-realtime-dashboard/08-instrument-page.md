@@ -50,15 +50,15 @@
   ```
 - Produces (event-log.ts): `class EventLog { constructor(instrumentCount: number, capacity = EVENT_LOG_SIZE); add(batch: Int32Array, updateCount: number, timeMs: number): void; events(instrument: number): TickerEvent[] }`. Sequence numbers start at 1 per log and count every update of every instrument.
 
-- [ ] **Step 1: Write the failing tests** in `event-log.spec.ts`, building batches with the `FIELD` offsets:
+- [x] **Step 1: Write the failing tests** in `event-log.spec.ts`, building batches with the `FIELD` offsets:
   - `K25 keeps only the last 100 events, oldest first`: 250 updates for instrument 0 → `events(0)` has length 100, sequences 151…250.
   - `K26 events carry a run-wide sequence and the batch time`: batch of [instrument 1, instrument 0, instrument 1] at `timeMs` 5000 → `events(1).map(sequence)` = [1, 3], all `timeMs` 5000, fields copied (price, quantity, bid, ask, bidQty, askQty).
   - `K26 instruments are isolated`: `events(2)` of a 3-instrument log fed only instrument 0 is `[]`.
   - `K25 tradeSide is buy at the ask and sell at the bid`.
-- [ ] **Step 2: Run** `pnpm vitest run src/app/producer/event-log.spec.ts`. Expected: FAIL, module not found.
-- [ ] **Step 3: Implement** `EventLog` with one `Int32Array(instrumentCount × capacity × 6)` for the six update fields, one `Float64Array(instrumentCount × capacity × 2)` for sequence and time, and per-instrument `next`/`count` arrays. `events()` is the only place that allocates.
-- [ ] **Step 4: Run** the spec. Expected: PASS. Review check: `add` has no `new`, `[]`, `{}` or `push`.
-- [ ] **Step 5: Commit** `feat(worker): per-instrument event log of the last 100 updates`.
+- [x] **Step 2: Run** `pnpm vitest run src/app/producer/event-log.spec.ts`. Expected: FAIL, module not found.
+- [x] **Step 3: Implement** `EventLog` with one `Int32Array(instrumentCount × capacity × 6)` for the six update fields, one `Float64Array(instrumentCount × capacity × 2)` for sequence and time, and per-instrument `next`/`count` arrays. `events()` is the only place that allocates.
+- [x] **Step 4: Run** the spec. Expected: PASS. Review check: `add` has no `new`, `[]`, `{}` or `push`.
+- [x] **Step 5: Commit** `feat(worker): per-instrument event log of the last 100 updates`.
 
 ### Task 2: Controller watches a symbol
 
@@ -69,16 +69,16 @@
 - Consumes: Task 1.
 - Produces: `handle({ type: 'watch', symbol })`; every snapshot has `watched`.
 
-- [ ] **Step 1: Write the failing tests:**
+- [x] **Step 1: Write the failing tests:**
   - `K28 snapshots carry no events while nothing is watched`: after apply + 1000 ms, `snapshots[0].watched` is `null`.
   - `K28 snapshots carry the watched symbol's events`: watch `'MSFT'`, apply, advance 1000 ms → `watched.symbol` `'MSFT'`, every event belongs to instrument 1 of the FakeWasm stream, `events.length ≤ 100`, sequences increasing.
   - `K28 watched symbol outside the run has no events`: watch `'TSLA'` → `watched` `{ symbol: 'TSLA', events: [] }`.
   - `K29 watch while paused posts a snapshot at once` and `K29 watch while idle posts nothing`.
   - `K27 apply clears the event log; watching survives apply`: watch, apply 1, run, apply 2 → first snapshot of run 2 has only events with run 2 sequences (starting at 1).
-- [ ] **Step 2: Run** `pnpm vitest run src/app/producer/producer-controller.spec.ts`. Expected: the new tests FAIL.
-- [ ] **Step 3: Implement:** a `watchedSymbol: string | null` field; `log = new EventLog(...)` created in `apply` next to the store; `scheduleBatch` calls `log.add(ints, updatesPerBatch, Date.now())`; `emit` adds `watched` (index via `config.symbols.indexOf`); `watch` sets the field and emits if the state is `running` or `paused`.
-- [ ] **Step 4: Run** all specs (`pnpm vitest run`). Expected: PASS.
-- [ ] **Step 5: Commit** `feat(worker): snapshots carry the watched symbol's events`.
+- [x] **Step 2: Run** `pnpm vitest run src/app/producer/producer-controller.spec.ts`. Expected: the new tests FAIL.
+- [x] **Step 3: Implement:** a `watchedSymbol: string | null` field; `log = new EventLog(...)` created in `apply` next to the store; `scheduleBatch` calls `log.add(ints, updatesPerBatch, Date.now())`; `emit` adds `watched` (index via `config.symbols.indexOf`); `watch` sets the field and emits if the state is `running` or `paused`.
+- [x] **Step 4: Run** all specs (`pnpm vitest run`). Expected: PASS.
+- [x] **Step 5: Commit** `feat(worker): snapshots carry the watched symbol's events`.
 
 ### Task 3: `ProducerService.watch`
 
@@ -88,14 +88,14 @@
 **Interfaces:**
 - Produces: `watch(symbol: string | null): void`; `readonly watched: Signal<WatchedEvents | null>`.
 
-- [ ] **Step 1: Write the failing tests:**
+- [x] **Step 1: Write the failing tests:**
   - `U31 watch sends the symbol to the worker`; `U31 a watch before the worker is up is sent before the first apply` (`workers[0].sent[0]` is the watch).
   - `U31 watch sets an empty log for the new symbol at once` (`watched()` → `{ symbol, events: [] }`; `watch(null)` → `null`).
   - `U32 ignores events of a symbol that is no longer watched`; `U32 apply clears the events and keeps the symbol`.
-- [ ] **Step 2: Run** the spec. Expected: FAIL.
-- [ ] **Step 3: Implement** as in the spec; snapshot handling sets `watched` only when `message.watched?.symbol === this.watchedSymbol`.
-- [ ] **Step 4: Run** all specs. Expected: PASS.
-- [ ] **Step 5: Commit** `feat(ui): ProducerService watches one symbol`.
+- [x] **Step 2: Run** the spec. Expected: FAIL.
+- [x] **Step 3: Implement** as in the spec; snapshot handling sets `watched` only when `message.watched?.symbol === this.watchedSymbol`.
+- [x] **Step 4: Run** all specs. Expected: PASS.
+- [x] **Step 5: Commit** `feat(ui): ProducerService watches one symbol`.
 
 ### Task 4: Chart and event table components
 
@@ -115,15 +115,15 @@
   <app-event-table [events]="…" />      // mat-table aria-label "Events", newest first
   ```
 
-- [ ] **Step 1: Write the failing tests:**
+- [x] **Step 1: Write the failing tests:**
   - `U34 maps events to price, bid and ask series in dollars` (`toPriceSeries`).
   - `U34 creates the chart after render and updates it with new events` (fake factory records `update` calls).
   - `U34 destroys the chart with the component`; `U34 does not create a chart on the server` (`PLATFORM_ID` `'server'`).
   - `U33 lists events newest first with formatted columns`: headers `['#', 'Time', 'Side', 'Price', 'Qty', 'Bid', 'Ask']`, a buy row `['2', '12:00:05.000', 'Buy', '$102.00', '30', '$101.96 × 600', '$102.00 × 400']` (time zone fixed to UTC in the test via the `DatePipe` timezone input or `DATE_PIPE_DEFAULT_OPTIONS`).
-- [ ] **Step 2: Run** `pnpm vitest run src/app/instrument`. Expected: FAIL.
-- [ ] **Step 3: Implement.** `chart-js.ts` registers only `LineController, LineElement, PointElement, LinearScale, Tooltip, Legend`; datasets Trade (points), Bid and Ask (`stepped: true`, thin); `animation: false`; colors from `getComputedStyle(canvas)` Material tokens (`--mat-sys-primary`, `--mat-sys-tertiary`, `--mat-sys-error`). The component creates the chart in `afterNextRender`, pushes `toPriceSeries(events())` in an `effect`, destroys in `DestroyRef.onDestroy`.
-- [ ] **Step 4: Run** all specs. Expected: PASS.
-- [ ] **Step 5: Commit** `feat(ui): price chart (Chart.js) and event table components`.
+- [x] **Step 2: Run** `pnpm vitest run src/app/instrument`. Expected: FAIL.
+- [x] **Step 3: Implement.** `chart-js.ts` registers only `LineController, LineElement, PointElement, LinearScale, Tooltip, Legend`; datasets Trade (points), Bid and Ask (`stepped: true`, thin); `animation: false`; colors from `getComputedStyle(canvas)` Material tokens (`--mat-sys-primary`, `--mat-sys-tertiary`, `--mat-sys-error`). The component creates the chart in `afterNextRender`, pushes `toPriceSeries(events())` in an `effect`, destroys in `DestroyRef.onDestroy`.
+- [x] **Step 4: Run** all specs. Expected: PASS.
+- [x] **Step 5: Commit** `feat(ui): price chart (Chart.js) and event table components`.
 
 ### Task 5: Instrument page, table link, prerender
 
@@ -135,21 +135,21 @@
 - Consumes: Tasks 3–4.
 - Produces: route `/instrument/:symbol`; `routeMeta` title `Instrument`.
 
-- [ ] **Step 1: Write the failing tests:**
+- [x] **Step 1: Write the failing tests:**
   - `U35 watches the symbol while open and stops on leave` (`watch` called with `'AAPL'`, then `null` on destroy).
   - `U35 follows the symbol when the route param changes` (param `AAPL` → `MSFT`: heading and `watch('MSFT')`).
   - `U35 shows a message for a symbol outside the run` (rows without the symbol: text `not in the current run`, link to `/settings`).
   - `U35 shows a skeleton until the producer has started, heading always`.
   - `U35 shows chart and events of the watched symbol`.
   - `U36 the symbol cell links to its instrument page` (dashboard spec: link `ALFA` has `href` `/instrument/ALFA`).
-- [ ] **Step 2: Run** the specs. Expected: FAIL.
-- [ ] **Step 3: Implement.** Symbol from `ActivatedRoute.paramMap` via `toSignal`; an `effect` calls `producer.watch(symbol())`; `DestroyRef.onDestroy` calls `watch(null)`. Prerender routes: `'/', '/settings'` plus `/instrument/<symbol>` for the first `SETTINGS_LIMITS.instrumentCount.max` entries of `public/resources/sp500.json` (read with `fs` in `vite.config.ts`).
-- [ ] **Step 4: Run** all specs and both typechecks. Expected: PASS.
-- [ ] **Step 5: Commit** `feat(ui): instrument page with price chart and event log`.
+- [x] **Step 2: Run** the specs. Expected: FAIL.
+- [x] **Step 3: Implement.** Symbol from `ActivatedRoute.paramMap` via `toSignal`; an `effect` calls `producer.watch(symbol())`; `DestroyRef.onDestroy` calls `watch(null)`. Prerender routes: `'/', '/settings'` plus `/instrument/<symbol>` for the first `SETTINGS_LIMITS.instrumentCount.max` entries of `public/resources/sp500.json` (read with `fs` in `vite.config.ts`).
+- [x] **Step 4: Run** all specs and both typechecks. Expected: PASS.
+- [x] **Step 5: Commit** `feat(ui): instrument page with price chart and event log`.
 
 ### Task 6: Verify and document
 
-- [ ] **Step 1:** `pnpm build`. Expected: success; `dist/analog/public/instrument/AAPL/index.html` exists; Chart.js is in its own chunk (not in the main entry).
-- [ ] **Step 2:** Browser, dev and production preview: open a ticker from the table, watch the chart and log move, pause (data stays), switch ticker, Apply with 1 instrument while on another ticker. No console errors. Stop servers and blank the page afterwards.
-- [ ] **Step 3:** Requirement rows K25–K29 in `03-worker.md`, U31–U37 in `04-ui.md` (U37: prerendered instrument pages, *build check*); README (routes, architecture), `progress.md`, `00-overview.md` (row 08).
-- [ ] **Step 4: Commit** `docs: instrument page`.
+- [x] **Step 1:** `pnpm build`. Expected: success; `dist/analog/public/instrument/AAPL/index.html` exists; Chart.js is in its own chunk (not in the main entry).
+- [x] **Step 2:** Browser, dev and production preview: open a ticker from the table, watch the chart and log move, pause (data stays), switch ticker, Apply with 1 instrument while on another ticker. No console errors. Stop servers and blank the page afterwards.
+- [x] **Step 3:** Requirement rows K25–K29 in `03-worker.md`, U31–U37 in `04-ui.md` (U37: prerendered instrument pages, *build check*); README (routes, architecture), `progress.md`, `00-overview.md` (row 08).
+- [x] **Step 4: Commit** `docs: instrument page`.

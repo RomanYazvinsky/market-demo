@@ -34,6 +34,11 @@ Every test name starts with the ID(s) it proves; `grep -rn "<ID>" src` lists the
 | K22 | The loader refuses big-endian platforms (memory model in `wasm-api.ts`) | C | `K22 rejects a big-endian platform before fetching` |
 | K23 | One Int32Array of `updatesPerBatch × 7` per run is bound in `init` and reused for every batch | C | `K12 K23 apply posts…` (asserts the bound length 70). Reuse is enforced by the contract: `nextBatch()` takes no buffer. |
 | K24 | The worker entry wires controller, loader and environment | S | — *Manual:* covered end to end in 05 Task 5.2 (browser-only glue). |
+| K25 | The event log keeps the last 100 updates per instrument, oldest first, in fixed-size buffers (bounded history) | S | `event-log.spec.ts` › `K25 keeps only the last 100 events, oldest first`, `K25 tradeSide is buy at the ask and sell at the bid`, `K25 K28 the watched log holds at most 100 events` |
+| K26 | Events carry a run-wide sequence number and their batch time; instruments are isolated | S | `K26 events carry a run-wide sequence and the batch time`, `K26 instruments are isolated`, `K26 reads only the first updateCount updates of the batch` |
+| K27 | Apply clears the event log; the watched symbol survives apply | S | `K27 apply clears the event log; watching survives apply` |
+| K28 | Snapshots carry the watched symbol's events (`null` when nothing is watched, `[]` when the symbol is not in the run) | S | `K28 snapshots carry no events while nothing is watched`, `K28 snapshots carry the watched symbol's events`, `K28 watched symbol outside the run has no events` |
+| K29 | A watch while running or paused posts a snapshot at once; before any run it posts nothing | S | `K29 watch while paused posts a snapshot at once`, `K29 watch while running posts a snapshot at once; null stops the events`, `K29 watch before any apply posts nothing` |
 
 
 **Interfaces produced:**

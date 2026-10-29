@@ -29,8 +29,8 @@ export function createPriceChart(canvas: HTMLCanvasElement): PriceChartHandle {
     type: 'line',
     data: {
       datasets: [
-        line('Trade', '--mat-sys-primary', { showLine: false, pointRadius: 2 }),
-        line('Bid', '--mat-sys-tertiary', { stepped: 'after' }),
+        line('Trade', '--mat-sys-on-surface', { showLine: false, pointRadius: 2 }),
+        line('Bid', '--mat-sys-primary', { stepped: 'after' }),
         line('Ask', '--mat-sys-error', { stepped: 'after' }),
       ],
     },
@@ -55,6 +55,8 @@ export function createPriceChart(canvas: HTMLCanvasElement): PriceChartHandle {
       chart.data.datasets[0].data = points(series.prices);
       chart.data.datasets[1].data = points(series.bids);
       chart.data.datasets[2].data = points(series.asks);
+      chart.options.scales!['x']!.min = series.sequences.at(0);
+      chart.options.scales!['x']!.max = series.sequences.at(-1);
       chart.update('none');
     },
     destroy: () => chart.destroy(),
