@@ -53,7 +53,7 @@ describe('long run memory', () => {
     await controller.handle({ type: 'watch', symbol: 'S0' });
     await controller.handle({ type: 'apply', runId: 1, config: CONFIG });
 
-    vi.advanceTimersByTime(500 * BATCH_INTERVAL_MS); // warm-up: JIT, first snapshots, full ring buffers
+    vi.advanceTimersByTime(2_000 * BATCH_INTERVAL_MS); // warm-up: JIT, full ring buffers, past the first forced Go GCs (every 1000 batches)
     const heapBefore = heapUsed();
     const wasmBefore = wasmMemory.buffer.byteLength;
 

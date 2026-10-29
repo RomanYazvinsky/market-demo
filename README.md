@@ -69,7 +69,8 @@ The module boundaries are typed contracts:
 1. The worker allocates **one `Int32Array` per run** (`updatesPerBatch × 7` elements) and passes it to `init`.
 2. Go keeps it for the run. `syscall/js` only copies in bulk into a `Uint8Array` (`js.CopyBytesToJS`), so in `init` Go creates a `Uint8Array` **view** over the same memory: `dst.buffer` from `dst.byteOffset`, `updatesPerBatch × 28` bytes. It's a view, not a copy.
 3. `nextBatch()` fills a reused Go slice, encodes it as little-endian int32 into a reused `[]byte` and does **one** `CopyBytesToJS`. That's at most 28 KB per batch with zero allocations. The worker then reads the values through its `Int32Array`.
-4. Wasm is little-endian and typed arrays use the platform's byte order. The worker checks for little-endian at load time instead of assuming it.
+4. Every `js.FuncOf` call leaves `js.Value` finalizer records off the Go heap, freed only by a GC that this small heap almost never triggers, so `nextBatch` forces `runtime.GC()` every 1000 batches ([golang/go#74342](https://github.com/golang/go/issues/74342)). Without it Wasm memory climbed to ~26 MB; `memory.integration.spec.ts` (K32) checks that it stays flat.
+5. Wasm is little-endian and typed arrays use the platform's byte order. The worker checks for little-endian at load time instead of assuming it.
 
 The full explanation is in the doc comments of `src/app/producer/wasm-api.ts` and `wasm/main.go`.
 

@@ -45,6 +45,7 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 	"syscall/js"
 
 	"findev-test/wasm/generator"
@@ -63,7 +64,16 @@ var (
 	// batchView is the Uint8Array byte view over the bound Int32Array's batch bytes
 	// (dst.buffer, from dst.byteOffset, updatesPerBatch * 28 bytes); the copy destination.
 	batchView js.Value
+	// batchesSinceGC counts nextBatch calls since the last forced GC.
+	batchesSinceGC int
 )
+
+// batchesPerGC: every js.FuncOf call wraps the event, `this` and `args` in js.Values whose finalizer
+// records live off the Go heap (~165 B per call). They are freed only after a GC, and this heap grows
+// too little to trigger one, so Wasm memory rose to ~26 MB before the first GC (K32). A forced GC
+// every 1000 batches keeps it flat. Suggested by a Go runtime maintainer for the same leak:
+// https://github.com/golang/go/issues/74342
+const batchesPerGC = 1000
 
 func main() {
 	js.Global().Set("producer", js.ValueOf(map[string]any{
@@ -158,5 +168,9 @@ func nextBatch(_ js.Value, _ []js.Value) any {
 	runGenerator.NextBatch(updates)
 	generator.Encode(encoded, updates)
 	js.CopyBytesToJS(batchView, encoded)
+	if batchesSinceGC++; batchesSinceGC == batchesPerGC {
+		batchesSinceGC = 0
+		runtime.GC()
+	}
 	return nil
 }
