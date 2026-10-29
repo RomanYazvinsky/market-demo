@@ -1,0 +1,28 @@
+<section class="flex flex-col gap-4">
+  <header class="flex flex-wrap items-center justify-between gap-4">
+    <h1>Market dashboard</h1>
+  </header>
+
+  @if (producer.started()) {
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <app-status-badge [status]="producer.status()" [error]="producer.error()" />
+      <button matButton="tonal" type="button" [disabled]="!canToggle()" (click)="toggle()">
+        {{ producer.status() === 'paused' ? 'Resume' : 'Pause' }}
+      </button>
+    </div>
+
+    <app-market-table [rows]="producer.rows()" />
+  } @else {
+    <div class="flex flex-col gap-4" aria-busy="true" aria-label="Loading market data">
+      <div class="flex items-center justify-between gap-4">
+        <div class="skeleton h-7 w-32 rounded-full"></div>
+        <div class="skeleton h-10 w-24 rounded-full"></div>
+      </div>
+      <div class="flex flex-col gap-2">
+        @for (row of skeletonRows; track row) {
+          <div class="skeleton h-12"></div>
+        }
+      </div>
+    </div>
+  }
+</section>

@@ -12,6 +12,17 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     mainFields: ['module'],
   },
+  optimizeDeps: {
+    // Pre-bundle lazily imported deps, so the first navigation doesn't trigger a full reload in dev.
+    include: [
+      '@angular/forms/signals',
+      '@angular/material/button',
+      '@angular/material/form-field',
+      '@angular/material/input',
+      '@angular/material/table',
+      '@angular/material/toolbar',
+    ],
+  },
   worker: {
     // The producer worker uses ES imports and is loaded via `?worker`.
     format: 'es',
@@ -24,6 +35,11 @@ export default defineConfig(({ mode }) => ({
         routes: async () => ['/', '/settings'],
       },
       inlineStylesExtension: 'scss',
+      vite: {
+        // The worker is in the Angular program (tsconfig.app.json) so its TS gets compiled in dev,
+        // but Vite's `?worker` wrapper module must be left to Vite.
+        transformFilter: (_code, id) => !/[?&]worker(&|$)/.test(id),
+      },
     }),
     tailwindcss(),
   ],
