@@ -32,7 +32,13 @@ h1 {
   margin: 0;
 }
 
+.text-hint {
+  font: var(--mat-sys-body-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
 // Skeleton placeholders for producer-driven content before the producer has started.
+// In the components layer, so Tailwind utilities (size, rounded-*) on the same element win.
 @mixin skeleton-shimmer {
   background: linear-gradient(
     90deg,
@@ -57,8 +63,10 @@ h1 {
   }
 }
 
-.skeleton {
-  @include skeleton-shimmer;
-  border-radius: var(--mat-sys-corner-small, 4px);
-  min-height: 1rem;
+@layer components {
+  .skeleton {
+    @include skeleton-shimmer;
+    border-radius: var(--mat-sys-corner-small, 4px);
+    min-height: 1rem;
+  }
 }

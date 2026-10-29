@@ -48,7 +48,7 @@ Plan: docs/superpowers/plans/2026-10-28-realtime-dashboard/
 - **Instruments:** S&P 500 tickers from `public/resources/sp500.json`, sliced on the UI side and sent in `ProducerConfig`.
 - **UI:**
   - Angular Material, signal forms, and the Angular `currency`/`number` pipes plus our own `cents`/`bigint` pipes.
-  - Tailwind for layout and SCSS for theme and components.
+  - Tailwind for layout (including padding and sizes); SCSS for theme and components. Pages are not components: no page stylesheet, only Tailwind plus components with their own SCSS.
   - Pages are prerendered (SSR/SSG) with skeletons. The producer starts after the first render, and the worker is a lazy `?worker` chunk wrapped by `rxWorker`.
   - Only `environment.ts` reads `import.meta`.
 - **Process:** contract-first modules (wasm, worker, ui), built test-first in parallel worktrees and merged. Every requirement has an ID (W/K/U/C) that appears in its test names.

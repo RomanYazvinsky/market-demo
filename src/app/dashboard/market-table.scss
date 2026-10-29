@@ -1,0 +1,14 @@
+:host {
+  display: block;
+}
+
+.wrap {
+  overflow-x: auto;
+  border-radius: var(--mat-sys-corner-medium, 12px);
+  border: 1px solid var(--mat-sys-outline-variant);
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

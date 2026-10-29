@@ -79,7 +79,8 @@ src/environments/environment.ts the only reader of import.meta (base URL, wasm U
 src/app/producer/               protocol, wasm contract, worker (controller, metrics, loader), service, rxWorker
 src/app/shared/                 cents and bigint pipes, formatBigInt
 src/app/settings/               signal-forms settings schema
-src/app/pages/                  index.page.ts (dashboard), settings.page.ts
+src/app/pages/                  index.page.ts (dashboard), settings.page.ts (Tailwind only, no SCSS)
+src/app/dashboard/              market-table, status-badge components (own SCSS)
 src/testing/                    test fixtures (producer stub, fake worker)
 ```
 
@@ -93,7 +94,7 @@ Every requirement has an ID, and every test name starts with the ID or IDs it pr
 
 The tables are in `docs/superpowers/plans/2026-10-28-realtime-dashboard/0*.md`. `grep -rn W07 wasm src` lists the evidence for one requirement. Generator tests use fixed seeds, and timing tests use Vitest fake timers, so nothing waits on real time.
 
-Stack: Angular Material for the table, buttons and form fields; Tailwind 4 for layout only (`src/tailwind.css`); SCSS for the theme and component styles.
+Stack: Angular Material for the table, buttons and form fields; SCSS for the theme and component styles; Tailwind 4 (`src/tailwind.css`) for layout (flex, gap, padding, sizes). Pages have no stylesheet: they use only Tailwind classes and compose components (`src/app/dashboard/`) that own their SCSS.
 
 ## Blocked dependency builds
 

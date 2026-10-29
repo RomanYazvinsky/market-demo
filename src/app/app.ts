@@ -7,12 +7,13 @@ import { ProducerService } from './producer/producer.service';
   selector: 'app-root',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, MatToolbarModule],
   styleUrl: './app.scss',
+  host: { class: 'block min-h-screen' },
   template: `
-    <mat-toolbar class="app-toolbar flex gap-6">
+    <mat-toolbar class="app-toolbar sticky top-0 z-10 flex gap-6">
       <span class="app-title">Market producer</span>
       <nav class="flex gap-4" aria-label="Main">
-        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
-        <a routerLink="/settings" routerLinkActive="active">Settings</a>
+        <a class="py-1" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
+        <a class="py-1" routerLink="/settings" routerLinkActive="active">Settings</a>
       </nav>
     </mat-toolbar>
     <main class="mx-auto w-full max-w-5xl p-4 md:p-6">

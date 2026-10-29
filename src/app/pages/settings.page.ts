@@ -13,7 +13,7 @@ export const routeMeta: RouteMeta = { title: 'Settings' };
 @Component({
   selector: 'app-settings-page',
   imports: [FormField, MatFormFieldModule, MatInputModule, MatButtonModule],
-  styleUrl: './settings.page.scss',
+  host: { class: 'block' },
   template: `
     <section class="flex max-w-md flex-col gap-4">
       <h1>Producer settings</h1>
@@ -48,7 +48,7 @@ export const routeMeta: RouteMeta = { title: 'Settings' };
             }
           </mat-error>
         </mat-form-field>
-        <p class="note">Apply starts a new run and clears current totals.</p>
+        <p class="text-hint m-0">Apply starts a new run and clears current totals.</p>
         <div class="flex justify-end">
           <button matButton="filled" type="submit" [disabled]="form().invalid()">Apply</button>
         </div>
