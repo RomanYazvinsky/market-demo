@@ -9,9 +9,12 @@
   background: var(--mat-sys-secondary-container);
   color: var(--mat-sys-on-secondary-container);
 
-  &[data-status='error'] {
-    background: var(--mat-sys-error-container);
-    color: var(--mat-sys-on-error-container);
+  // --app-status-* come from src/styles.scss (Material palettes).
+  @each $status in idle, running, paused, error {
+    &[data-status='#{$status}'] {
+      background: var(--app-status-#{$status}-container);
+      color: var(--app-status-#{$status}-on-container);
+    }
   }
 }
 

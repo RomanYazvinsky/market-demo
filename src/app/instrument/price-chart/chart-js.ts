@@ -58,15 +58,15 @@ export function createPriceCharts(canvases: ChartCanvases): PriceChartHandle {
     canvases.price,
     [
       line(canvases.price, 'Trade', '--mat-sys-on-surface', { showLine: false, pointRadius: 2 }),
-      line(canvases.price, 'Bid', '--mat-sys-primary', { stepped: 'after' }),
-      line(canvases.price, 'Ask', '--mat-sys-error', { stepped: 'after' }),
+      line(canvases.price, 'Bid', '--mat-sys-primary', {}),
+      line(canvases.price, 'Ask', '--mat-sys-error', {}),
     ],
     false,
     false,
   );
   const spreadChart = lineChart(
     canvases.spread,
-    [line(canvases.spread, 'Spread', '--mat-sys-tertiary', { stepped: 'after', fill: 'origin', backgroundColor: themeColor(canvases.spread, '--mat-sys-tertiary-container') })],
+    [line(canvases.spread, 'Spread', '--mat-sys-tertiary', { fill: 'origin', backgroundColor: themeColor(canvases.spread, '--mat-sys-tertiary-container') })],
     true,
     true,
   );

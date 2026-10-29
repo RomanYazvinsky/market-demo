@@ -12,6 +12,7 @@ This document splits the task into numbered requirements for the three modules (
   - W14: `grep -rnE "Math\.random|crypto\.getRandomValues" src/app` shows only the seed in `producer.worker.ts`.
   - C07: `grep -rn "import.meta" src` shows only `environments/environment.ts` and `vite-env.d.ts`.
   - U28: `grep -rn "@apply" src` is empty.
+  - U50: visual (colors come from `--app-status-*` in `src/styles.scss`).
   - U43: `ls dist/analog/public/instrument` lists 50 directories after `pnpm build`.
   - K24, U21: manual, in the running app (U21 at 1000 updates / 50 ms).
   - U45: the page reuses the shared `ProducerToggle`, whose behaviour is tested under U15.
@@ -190,6 +191,7 @@ Generator tests use fixed seeds and timing tests use Vitest fake timers, so no t
 | U47 | A Live / 60 s / 5 min toggle (default Live) switches both charts | Switch between event detail and the trend. |
 | U48 | "Show charts" (settings toggle) is off by default and applies at once; a route guard sends the instrument page to the dashboard while it is off, and table symbols are plain text | The page is a debugging tool, not part of the task, so the default UI stays within the task. |
 | U49 | After an error the run control offers Retry: it reloads when no run was started yet, otherwise it restarts the run with the current settings | A failed load or run otherwise left only a disabled button, and the retry was reachable only through Apply on the settings page; found in review. |
+| U50 | The status badge is colored by status: idle gray, running green, paused yellow, error red (Material palette tones) | The run state is readable at a glance. |
 
 ## 4. Shared contracts
 

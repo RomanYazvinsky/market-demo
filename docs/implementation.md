@@ -191,7 +191,7 @@ Every failure ends as a readable `error` status with text, shown in the status b
 
 ## Instrument (chart) page
 
-`/instrument/:symbol` shows a ticker's current spread, a price chart (trade price with stepped bid and ask), a spread chart and a log of its last 100 updates, newest first. The charts have Live (last 100 events), 60 s and 5 min windows; the time windows use one point per second [U37–U47].
+`/instrument/:symbol` shows a ticker's current spread, a price chart (trade price as dots, bid and ask as straight lines between updates), a spread chart and a log of its last 100 updates, newest first. The charts have Live (last 100 events), 60 s and 5 min windows; the time windows use one point per second [U37–U47].
 
 The page was built to **debug and tune the generator**, not as a product feature. Watching single updates made model problems visible that the dashboard's aggregates hide: an emptied level showing ±1.00 imbalance, quotes moving on almost half the updates, and the spread sitting at the cap. The sweep step [W27] and the delayed return of the other side [W28] were tuned on it.
 

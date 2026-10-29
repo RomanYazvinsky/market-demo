@@ -1,4 +1,5 @@
 // Global theme and base styles (SCSS). Layout utilities come from src/tailwind.css.
+@use 'sass:map';
 @use '@angular/material' as mat;
 
 html {
@@ -35,6 +36,21 @@ h1 {
 .text-hint {
   font: var(--mat-sys-body-small);
   color: var(--mat-sys-on-surface-variant);
+}
+
+// Producer status colors (status badge) from Material palettes: tone 90 on tone 10 in light mode,
+// tone 30 on tone 90 in dark mode. Set here because component stylesheets cannot @use Material
+// (it breaks their server render during prerendering).
+@mixin status-colors($name, $tones) {
+  --app-status-#{$name}-container: light-dark(#{map.get($tones, 90)}, #{map.get($tones, 30)});
+  --app-status-#{$name}-on-container: light-dark(#{map.get($tones, 10)}, #{map.get($tones, 90)});
+}
+
+html {
+  @include status-colors(idle, map.get(mat.$azure-palette, neutral));
+  @include status-colors(running, mat.$green-palette);
+  @include status-colors(paused, mat.$yellow-palette);
+  @include status-colors(error, mat.$red-palette);
 }
 
 // Material has no success role, so green is set here for both color schemes.
